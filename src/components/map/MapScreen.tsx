@@ -10,8 +10,8 @@ import FilterBar from '../feed/FilterBar'
 import dynamic from 'next/dynamic'
 import MiniCard from './MiniCard'
 
-// Dynamically import LeafletMap to avoid SSR issues (leaflet needs window)
-const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false })
+// Dynamically import MapboxMap to avoid SSR issues (mapbox-gl needs window)
+const MapboxMap = dynamic(() => import('./MapboxMap'), { ssr: false })
 
 interface MapScreenProps {
   initialCuisine?: string
@@ -181,7 +181,7 @@ function MapView({
 }) {
   return (
     <div className="flex-1 overflow-hidden relative">
-      <LeafletMap
+      <MapboxMap
         restaurants={restaurants}
         selectedRestaurant={selectedRestaurant}
         onPinTap={onPinTap}
