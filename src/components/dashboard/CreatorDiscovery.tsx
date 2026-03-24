@@ -51,7 +51,7 @@ export default function CreatorDiscovery() {
 
       return true
     })
-  }, [selectedCuisine, selectedArea, selectedTier, rateMin, rateMax])
+  }, [allCreators, selectedCuisine, selectedArea, selectedTier, rateMin, rateMax])
 
   const getTierLabel = (tier: string): string => {
     const tierMap: Record<string, string> = {

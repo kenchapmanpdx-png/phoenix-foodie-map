@@ -67,7 +67,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
     }
 
     return filtered.filter((r) => r.is_active)
-  }, [activeFilters])
+  }, [activeFilters, allRestaurants])
 
   // Sort restaurants for list view
   const sortedRestaurants = useMemo(() => {

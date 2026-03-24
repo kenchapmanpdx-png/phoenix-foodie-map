@@ -90,7 +90,7 @@ export default function RestaurantAnalytics() {
     return Array.from(creatorStats.values()).sort(
       (a, b) => b.totalActions - a.totalActions
     )
-  }, [restaurantContent, creatorMap])
+  }, [allContent, allCreators, restaurantContent, creatorMap])
 
   // Trending Dishes (mock)
   const trendingDishes = [

@@ -51,7 +51,7 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
       (a, b) =>
         new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime()
     )
-  }, [activeFilters])
+  }, [allContent, activeFilters])
 
   return (
     <div className="h-screen bg-[var(--color-surface-primary)] flex flex-col">

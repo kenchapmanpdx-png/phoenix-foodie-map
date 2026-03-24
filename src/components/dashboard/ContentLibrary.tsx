@@ -97,7 +97,7 @@ export default function ContentLibrary() {
     })
 
     return result
-  }, [restaurantContent, selectedCreator, contentType, sortBy])
+  }, [allContent, selectedCreator, contentType, sortBy])
 
   return (
     <div className="space-y-6">
