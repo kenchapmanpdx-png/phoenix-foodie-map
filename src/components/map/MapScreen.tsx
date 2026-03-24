@@ -7,30 +7,15 @@ import { SEED_RESTAURANTS } from '@/lib/seed-data'
 import { CUISINE_TYPES, VIBE_TAGS, NEIGHBORHOODS, DEFAULT_CENTER } from '@/lib/constants'
 import type { CuisineType, VibeTag, Restaurant } from '@/types'
 import FilterBar from '../feed/FilterBar'
-import RestaurantPin from './RestaurantPin'
+import dynamic from 'next/dynamic'
 import MiniCard from './MiniCard'
+
+// Dynamically import LeafletMap to avoid SSR issues (leaflet needs window)
+const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false })
 
 interface MapScreenProps {
   initialCuisine?: string
   initialVibe?: string
-}
-
-// Phoenix neighborhoods with grid positions (rough lat/long to grid mapping)
-const NEIGHBORHOOD_GRID_POSITIONS: Record<string, { row: number; col: number }> = {
-  'Downtown Phoenix': { row: 2, col: 2 },
-  'Scottsdale': { row: 1, col: 3 },
-  'Tempe': { row: 3, col: 2 },
-  'Mesa': { row: 3, col: 3 },
-  'Chandler': { row: 4, col: 3 },
-  'Gilbert': { row: 4, col: 2 },
-  'Ahwatukee': { row: 4, col: 1 },
-  'Camelback': { row: 1, col: 2 },
-  'Arcadia': { row: 2, col: 3 },
-  'Paradise Valley': { row: 1, col: 3 },
-  'Peoria': { row: 0, col: 1 },
-  'Glendale': { row: 1, col: 1 },
-  'Goodyear': { row: 3, col: 0 },
-  'Surprise': { row: 2, col: 0 },
 }
 
 export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProps) {
@@ -195,65 +180,20 @@ function MapView({
   onPinTap: (restaurant: Restaurant) => void
 }) {
   return (
-    <div className="flex-1 overflow-hidden relative bg-gradient-to-b from-[var(--color-surface-primary)] to-[#1a1a1a]">
-      {/* Map grid background - CSS grid representing Phoenix neighborhoods */}
-      <div className="absolute inset-0 grid grid-cols-4 grid-rows-5 gap-1 p-4 opacity-10">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="border border-[var(--color-accent-primary)] rounded-lg bg-[var(--color-accent-primary)]/5"
-          />
-        ))}
-      </div>
-
-      {/* Restaurant pins */}
-      <div className="absolute inset-0 p-4">
-        {restaurants.length > 0 ? (
-          restaurants.map((restaurant, index) => {
-            const gridPos = NEIGHBORHOOD_GRID_POSITIONS[restaurant.neighborhood] || { row: 2, col: 2 }
-            const isSelected = selectedRestaurant?.id === restaurant.id
-
-            // Calculate percentage position within map
-            const topPercent = (gridPos.row / 5) * 100
-            const leftPercent = (gridPos.col / 4) * 100
-
-            // Add random offset within grid cell for visual variety
-            const offsetX = ((index % 3) - 1) * 8
-            const offsetY = ((index % 2) - 0.5) * 8
-
-            return (
-              <div
-                key={restaurant.id}
-                className="absolute"
-                style={{
-                  top: `calc(${topPercent}% + ${offsetY}px)`,
-                  left: `calc(${leftPercent}% + ${offsetX}px)`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-              >
-                <RestaurantPin
-                  restaurant={restaurant}
-                  isSelected={isSelected}
-                  onClick={() => onPinTap(restaurant)}
-                  animationDelay={index * 50}
-                />
-              </div>
-            )
-          })
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-[var(--color-text-secondary)] text-lg mb-2">No restaurants found</p>
-              <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
-            </div>
+    <div className="flex-1 overflow-hidden relative">
+      <LeafletMap
+        restaurants={restaurants}
+        selectedRestaurant={selectedRestaurant}
+        onPinTap={onPinTap}
+      />
+      {restaurants.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center bg-[var(--color-surface-card)] px-6 py-4 rounded-xl">
+            <p className="text-[var(--color-text-secondary)] text-lg mb-2">No restaurants found</p>
+            <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
           </div>
-        )}
-      </div>
-
-      {/* Map integration note */}
-      <div className="absolute bottom-4 right-4 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-card)] px-3 py-2 rounded-lg">
-        Note: This is a CSS-based map placeholder. In production, integrate Mapbox GL JS here.
-      </div>
+        </div>
+      )}
     </div>
   )
 }
