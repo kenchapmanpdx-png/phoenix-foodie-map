@@ -78,19 +78,31 @@ export default function MiniCard({ restaurant, onClose, onTap }: MiniCardProps) 
 
   return (
     <>
+      <style>{`
+        @keyframes minicard-slide-up {
+          0% { transform: translateY(100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
+
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      {/* Mini Card Container */}
+      {/* Mini Card Container - slides up from bottom */}
       <div
         ref={containerRef}
         className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4"
         style={{
-          transform: `translateY(${dragOffset}px)`,
+          transform: dragOffset > 0
+            ? `translateY(${dragOffset}px)`
+            : undefined,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          animation: dragOffset === 0 && !isDragging
+            ? 'minicard-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            : undefined,
         }}
       >
         {/* Drag handle */}

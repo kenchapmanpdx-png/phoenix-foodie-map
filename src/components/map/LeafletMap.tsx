@@ -1,27 +1,77 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import type { Restaurant } from '@/types'
 import { DEFAULT_CENTER } from '@/lib/constants'
 
-// We import leaflet dynamically in useEffect to avoid SSR issues
 interface LeafletMapProps {
   restaurants: Restaurant[]
   selectedRestaurant: Restaurant | null
   onPinTap: (restaurant: Restaurant) => void
 }
 
+// Cuisine-based gradient colors matching RestaurantPin blueprint
+function getGradientColors(cuisineType: string): [string, string] {
+  const gradients: Record<string, [string, string]> = {
+    Italian: ['#EF4444', '#DC2626'],
+    Japanese: ['#EC4899', '#BE185D'],
+    Mexican: ['#F59E0B', '#D97706'],
+    Thai: ['#8B5CF6', '#6D28D9'],
+    Indian: ['#F97316', '#C2410C'],
+    Chinese: ['#EF4444', '#991B1B'],
+    Vietnamese: ['#10B981', '#047857'],
+    Korean: ['#F59E0B', '#EA580C'],
+    Mediterranean: ['#3B82F6', '#1E40AF'],
+    American: ['#64748B', '#334155'],
+  }
+  return gradients[cuisineType] || ['#F59E0B', '#D97706']
+}
+
 export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }: LeafletMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const styleInjectedRef = useRef(false)
 
+  // Inject pin animation CSS once
+  useEffect(() => {
+    if (styleInjectedRef.current) return
+    styleInjectedRef.current = true
+
+    const style = document.createElement('style')
+    style.textContent = `
+      @keyframes pin-scale-bounce {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes pulse-ring {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(2); opacity: 0; }
+      }
+      .leaflet-pin-enter {
+        animation: pin-scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        opacity: 0;
+      }
+      .leaflet-pin-selected::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px solid #F59E0B;
+        animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        pointer-events: none;
+      }
+      .custom-pin { background: none !important; border: none !important; }
+    `
+    document.head.appendChild(style)
+  }, [])
+
+  // Initialize map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
 
-    // Dynamic import of leaflet
     import('leaflet').then((L) => {
-      // Fix default icon paths (webpack issue)
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -36,13 +86,11 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
         attributionControl: true,
       })
 
-      // Dark tile layer
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
         maxZoom: 19,
       }).addTo(map)
 
-      // Zoom control on the right
       L.control.zoom({ position: 'bottomright' }).addTo(map)
 
       mapInstanceRef.current = map
@@ -67,39 +115,50 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
       markersRef.current.forEach((m) => m.remove())
       markersRef.current = []
 
-      restaurants.forEach((restaurant) => {
+      restaurants.forEach((restaurant, index) => {
         const isSelected = selectedRestaurant?.id === restaurant.id
+        const [color1, color2] = getGradientColors(restaurant.cuisine_types[0])
+        const staggerDelay = index * 40 // 40ms stagger between pins
+        const size = isSelected ? 44 : 36
 
-        // Custom icon with amber accent
         const icon = L.divIcon({
           className: 'custom-pin',
-          html: `<div style="
-            width: ${isSelected ? '40px' : '32px'};
-            height: ${isSelected ? '40px' : '32px'};
-            border-radius: 50% 50% 50% 0;
-            background: ${isSelected ? '#F59E0B' : 'linear-gradient(135deg, #F59E0B, #EA580C)'};
-            transform: rotate(-45deg);
+          html: `<div class="leaflet-pin-enter ${isSelected ? 'leaflet-pin-selected' : ''}" style="
+            position: relative;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, ${color1}, ${color2});
             border: 2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.3)'};
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            transition: all 150ms ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+            cursor: pointer;
+            animation-delay: ${staggerDelay}ms;
+            transition: transform 150ms ease, box-shadow 150ms ease;
           ">
             <span style="
-              transform: rotate(45deg);
               font-weight: 700;
-              font-size: ${isSelected ? '14px' : '12px'};
-              color: ${isSelected ? '#000' : '#fff'};
+              font-size: ${isSelected ? '16px' : '14px'};
+              color: #fff;
+              text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             ">${restaurant.name[0]}</span>
           </div>`,
-          iconSize: [isSelected ? 40 : 32, isSelected ? 40 : 32],
-          iconAnchor: [isSelected ? 20 : 16, isSelected ? 40 : 32],
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
         })
 
         const marker = L.marker([restaurant.latitude, restaurant.longitude], { icon })
           .addTo(map)
-          .on('click', () => onPinTap(restaurant))
+          .on('click', () => {
+            // Fly to pin location on tap
+            map.flyTo([restaurant.latitude, restaurant.longitude], 14, {
+              duration: 0.8,
+              easeLinearity: 0.25,
+            })
+            onPinTap(restaurant)
+          })
 
         markersRef.current.push(marker)
       })
