@@ -74,11 +74,17 @@ export default function VideoCard({ content }: VideoCardProps) {
           />
         )}
 
-        {/* Video play button overlay */}
+        {/* Video play button overlay — opens reel on Instagram */}
         {showPlayButton && (
           <div
             className="absolute inset-0 flex items-center justify-center z-5 bg-black/20"
-            onMouseEnter={() => setShowPlayButton(false)}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (content.original_url) {
+                window.open(content.original_url, '_blank', 'noopener,noreferrer')
+              }
+            }}
           >
             <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors shadow-lg">
               <svg
