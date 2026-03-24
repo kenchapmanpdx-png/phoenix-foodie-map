@@ -186,6 +186,29 @@ Commit `c2f2377`:
 - Shows "Closed · [next opening time]" text for closed restaurants when openNow filter on
 - Imported `getNextOpenTime` utility for next opening calculation
 
+## Completed: All 12 Blueprint v2 Amendments (2026-03-24)
+
+Commits `cba300f`, `6fbf6d2`, `81ea66f`:
+
+**Foundation (types, queries, config)**:
+- `types/index.ts`: Added `creator_count`, `content_count`, `is_surfaced` to Restaurant; `last_app_open` to User; `last_action_at` to Save; `dish_id`/`time_of_day_bucket` to AnalyticsEvent
+- `lib/queries.ts`: `fetchSurfacedRestaurants()` (is_surfaced=true), `fetchTopDishes()`, `searchDishes()`
+- `lib/utils.ts`: `getVibeTimeScore()`, `getNextOpenTime()`, `EVENT_WEIGHTS`, `getTimeOfDayBucket()`
+- `store/filters.ts`: `openNow` defaults true 11am–midnight
+
+**Amendment 1**: HomeScreen "Dishes People Are Ordering" section — top 8 dishes by feature_count
+**Amendment 2**: FeedScreen time-of-day vibe ranking — primary sort by getVibeTimeScore, secondary by publish_date
+**Amendment 3**: Open Now default + closed restaurant dimming (opacity-50 grayscale) on MapScreen
+**Amendment 4**: is_surfaced filter — MapScreen uses useSurfacedRestaurants; direct URL access unfiltered
+**Amendment 5**: Creator Pick badge — VideoCard, FeedCard, ContentCard show amber badge when creator_count >= 3
+**Amendment 6**: RestaurantDetailScreen in-app menu (5+ dishes horizontal scroll) + tap_dish event tracking
+**Amendment 7**: SearchScreen dish-priority results — dishes render first, "Most Featured Dishes" pre-search
+**Amendment 8**: Removed urgency/scarcity messaging — "Trending Now"→"Recently Featured", sort→"Newest", GigManager urgency colors removed
+**Amendment 9**: Email template infrastructure — weekly digest, monthly recap, 7d/30d win-back sequences (`lib/emailTemplates.ts`)
+**Amendment 10**: Push notification triggers — new content for saved restaurants, save reminders, last_action_at tracking (`lib/pushNotifications.ts`)
+**Amendment 11**: Restaurant dashboard Performance Benchmarks panel — views/content, save rate, action rate, creator content with category avg/top performer bars
+**Amendment 12**: Behavioral taste profiling engine — weighted events, recency decay, taste vector, feed re-ranking with anti-filter-bubble randomness (`lib/tasteProfile.ts`)
+
 ## Next Steps
 
 1. **Video playback** (#7): Implement `<video>` with IntersectionObserver autoplay, muted+playsinline, 3-loop pause
@@ -196,3 +219,6 @@ Commit `c2f2377`:
 6. **Image hosting**: Migrate Unsplash URLs to Supabase Storage or Cloudflare Images
 7. **PWA manifest + service worker** (#22): Workbox caching, install prompt
 8. **Counter-offer flow** (#6): Creator gig negotiation UI
+9. **Wire taste profiling to feed**: Connect `tasteProfile.ts` rerankFeed() to FeedScreen when user is authenticated
+10. **Email service integration**: Connect emailTemplates.ts to Resend/SendGrid via Supabase Edge Function
+11. **Push notification service**: Connect pushNotifications.ts to FCM/APNs via Supabase Edge Function
