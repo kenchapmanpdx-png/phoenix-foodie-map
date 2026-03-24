@@ -27,7 +27,7 @@ export default function ContentCard({ content, size, onClick }: ContentCardProps
   const sizeClasses = {
     small: 'w-40 h-48',
     medium: 'w-56 h-64',
-    large: 'w-[75vw] aspect-[4/5]',
+    large: 'w-[75vw] max-w-sm aspect-[4/5]',
   }[size]
 
   // Gradient backgrounds for thumbnails (warm food-forward colors)

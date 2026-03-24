@@ -54,7 +54,7 @@ export default function HomeScreen() {
         <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-4">What are you craving?</h2>
 
         {/* 2-column grid, 10 items */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {CUISINE_TYPES.map((cuisine, index) => (
             <Link
               key={cuisine.value}
@@ -64,7 +64,7 @@ export default function HomeScreen() {
                 className={`
                   bg-gradient-to-br ${cuisineGradients[index]}
                   rounded-2xl overflow-hidden
-                  aspect-[4/3]
+                  aspect-[3/2] max-h-40
                   flex items-end
                   cursor-pointer
                   relative group
@@ -85,7 +85,7 @@ export default function HomeScreen() {
               >
                 {/* Background emoji */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-7xl opacity-10">{cuisineEmojis[cuisine.label] || '🍽️'}</span>
+                  <span className="text-5xl opacity-10">{cuisineEmojis[cuisine.label] || '🍽️'}</span>
                 </div>
 
                 {/* Bottom scrim for readability */}
