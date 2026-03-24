@@ -52,7 +52,7 @@ export default function VideoCard({ content }: VideoCardProps) {
   return (
     <Link href={`/content/${content.id}`}>
       <div
-        className="feed-card relative w-full rounded-lg overflow-hidden bg-gradient-to-br flex flex-col cursor-pointer group"
+        className="relative w-full rounded-lg overflow-hidden bg-gradient-to-br flex flex-col cursor-pointer group"
         style={{
           height: 'clamp(480px, 75svh, 720px)',
         }}

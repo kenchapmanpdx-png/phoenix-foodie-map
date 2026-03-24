@@ -55,7 +55,7 @@ export default function FeedCard({ content }: FeedCardProps) {
   return (
     <Link href={`/content/${content.id}`}>
       <div
-        className="feed-card relative w-full rounded-lg overflow-hidden bg-gradient-to-br flex flex-col cursor-pointer group"
+        className="relative w-full rounded-lg overflow-hidden bg-gradient-to-br flex flex-col cursor-pointer group"
         style={{
           height: 'clamp(480px, 75svh, 720px)',
           backgroundImage: `linear-gradient(135deg, var(--color-surface-primary), #1a1a1a)`,
