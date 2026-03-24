@@ -99,10 +99,37 @@ This enables tracking: which restaurants drive clicks, which creators are effect
 - flyTo on pin click (zoom 14, 800ms ease-out)
 - Mini card slide-up with touch drag dismiss
 
+## Completed: Full Supabase Wiring + Pin Tap Fix (2026-03-23)
+
+All 20 consumer/dashboard/creator components wired to Supabase. Map switched from Mapbox to Leaflet (Mapbox CSS fails on Vercel). 30 pins verified on live site. Pin tap → flyTo → MiniCard fixed (z-index + outside-click race condition).
+
+## Completed: P0/P1 Bug Fixes (2026-03-24)
+
+Applied via patch (`dc129ea`):
+- Analytics events persist to Supabase (was in-memory only)
+- Consolidated duplicate UTM builders (deleted buildUTMUrl from utils.ts)
+- Fixed RestaurantDetailScreen day name case (Sunday→sunday) for hours display
+- FeedCard/VideoCard save state uses Zustand store (was local useState)
+- FTC disclosure labels: "Comped"→"Gifted", "Platform Booked"→"Sponsored"
+- DB migrations applied: content_dishes RLS enabled, platform_fee_rate default 5%
+
+## Completed: P2/P3 Sprint (2026-03-24)
+
+Commit `b6e3d7a`:
+- **Geolocation + Haversine distance**: `useGeolocation` hook with browser API, 5s fallback to Phoenix center. Replaces Math.random() and Pythagorean distance everywhere.
+- **Dish→content filtering**: Tap dish on restaurant detail to filter content via content_dishes junction. New `fetchContentDishLinks` query + `useContentDishLinks` hook.
+- **Open Now filter**: MapScreen filtering now checks `activeFilters.openNow` against `isOpenNow()`.
+- **Route fix**: `/restaurant/[slug]` and `/content/[id]` 404 on Vercel fixed — Next.js 15+ requires `await params`.
+- **Skeleton loading**: FeedCardSkeleton shimmer during Supabase load. Map suppresses "No restaurants found" during loading.
+- **Back button fix**: Restaurant detail uses `history.back()` instead of hardcoded `/feed` link.
+
 ## Next Steps
 
-1. **Wire Supabase client**: Replace `SEED_RESTAURANTS` import with live Supabase queries in MapScreen, feed, detail pages
-2. **Components**: Integrate `useTrackView` and `<TrackedLink>` into feed, detail pages, action buttons
-3. **Dashboard**: Build analytics dashboard using event queries
-4. **Image hosting**: Migrate Unsplash thumbnail URLs to Supabase Storage or Cloudflare Images
-5. **Optimization**: Add event batching, offline queue, retry logic for production reliability
+1. **Video playback** (#7): Implement `<video>` with IntersectionObserver autoplay, muted+playsinline, 3-loop pause
+2. **Saves persistence** (#9): Write saves to Supabase `saves` table, sync on load
+3. **View Transitions** (#14): `next-view-transitions` for card→detail shared element transitions
+4. **Skeleton loading expansion**: Add to restaurant detail, search, saved screens
+5. **Pagination/infinite scroll** (#16): Cursor-based content loading for scale
+6. **Image hosting**: Migrate Unsplash URLs to Supabase Storage or Cloudflare Images
+7. **PWA manifest + service worker** (#22): Workbox caching, install prompt
+8. **Counter-offer flow** (#6): Creator gig negotiation UI
