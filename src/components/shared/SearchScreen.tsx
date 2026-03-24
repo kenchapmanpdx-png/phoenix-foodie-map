@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useContentWithRelations, useRestaurants, useCreators } from '@/hooks/useSupabaseData'
-import type { ContentWithRelations, Restaurant, Creator } from '@/types'
+import { useContentWithRelations, useRestaurants, useCreators, useDishes } from '@/hooks/useSupabaseData'
+import type { ContentWithRelations, Restaurant, Creator, Dish } from '@/types'
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('')
@@ -12,6 +12,7 @@ export default function SearchScreen() {
   const { content: allContent, loading: contentLoading } = useContentWithRelations()
   const { restaurants: allRestaurants, loading: restaurantsLoading } = useRestaurants()
   const { creators: allCreators, loading: creatorsLoading } = useCreators()
+  const { dishes: allDishes, loading: dishesLoading } = useDishes()
 
   // Auto-focus on mount
   useEffect(() => {
@@ -31,6 +32,21 @@ export default function SearchScreen() {
   }
 
   // Filter functions
+  const filterDishesByName = (q: string): Array<{ dish: Dish; restaurant: Restaurant }> => {
+    if (!q.trim()) return []
+    const lowerQ = q.toLowerCase()
+    const results = allDishes
+      .filter((dish) => dish.name.toLowerCase().includes(lowerQ))
+      .map((dish) => {
+        const restaurant = allRestaurants.find((r) => r.id === dish.restaurant_id)
+        return { dish, restaurant: restaurant || ({} as Restaurant) }
+      })
+      .filter((item) => item.restaurant.id)
+      .sort((a, b) => b.dish.feature_count - a.dish.feature_count)
+      .slice(0, 3)
+    return results
+  }
+
   const filterDishes = (q: string): Array<{ dish: any; restaurant: Restaurant }> => {
     if (!q.trim()) return []
     const lowerQ = q.toLowerCase()
@@ -69,14 +85,20 @@ export default function SearchScreen() {
     ).slice(0, 3)
   }
 
-  const dishes = filterDishes(query)
+  const searchedDishes = filterDishesByName(query)
+  const searchedContent = filterDishes(query)
   const restaurants = filterRestaurants(query)
   const creators = filterCreators(query)
 
-  // Get trending dishes (most saved)
-  const trendingDishes = allContent.sort(
-    (a, b) => b.save_count - a.save_count
-  ).slice(0, 4)
+  // Get trending dishes (most featured)
+  const trendingDishes = allDishes
+    .map((dish) => {
+      const restaurant = allRestaurants.find((r) => r.id === dish.restaurant_id)
+      return { dish, restaurant }
+    })
+    .filter((item) => item.restaurant)
+    .sort((a, b) => b.dish.feature_count - a.dish.feature_count)
+    .slice(0, 4)
 
   // Get recently added restaurants (by created_at desc)
   const newRestaurants = allRestaurants.sort(
@@ -118,19 +140,19 @@ export default function SearchScreen() {
             <div className="mb-8">
               <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Popular right now</h2>
               <div className="space-y-3">
-                {trendingDishes.map((content) => (
+                {trendingDishes.map(({ dish, restaurant }) => (
                   <Link
-                    key={content.id}
-                    href={`/content/${content.id}`}
+                    key={dish.id}
+                    href={`/restaurant/${restaurant?.slug}#dish-${dish.id}`}
                     className="flex gap-3 p-3 rounded-lg bg-[var(--color-surface-card)] hover:bg-[var(--color-surface-card-hover)] transition-colors"
                   >
                     <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-amber-900 via-orange-700 to-red-600 flex-shrink-0 flex items-center justify-center">
                       <span className="text-2xl">🍽️</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-[var(--color-text-primary)]">{content.restaurant.name}</div>
-                      <div className="text-xs text-[var(--color-text-tertiary)] truncate">{content.creator.display_name}</div>
-                      <div className="text-xs text-[var(--color-accent-primary)] font-medium mt-1">{content.save_count} saves</div>
+                      <div className="text-sm font-semibold text-[var(--color-text-primary)]">{dish.name}</div>
+                      <div className="text-xs text-[var(--color-text-tertiary)] truncate">at {restaurant?.name}</div>
+                      <div className="text-xs text-[var(--color-accent-primary)] font-medium mt-1">{dish.feature_count} creators featured</div>
                     </div>
                   </Link>
                 ))}
@@ -164,29 +186,35 @@ export default function SearchScreen() {
           </>
         ) : (
           <>
-            {/* Dishes */}
-            {dishes.length > 0 && (
+            {/* Dishes - FIRST and more prominent when results exist */}
+            {searchedDishes.length > 0 && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Dishes</h3>
-                  {dishes.length === 3 && (
+                  {searchedDishes.length === 3 && (
                     <button className="text-xs font-medium text-[var(--color-accent-primary)]">See all</button>
                   )}
                 </div>
-                <div className="space-y-3">
-                  {dishes.map((item) => (
+                <div className="space-y-4">
+                  {searchedDishes.map(({ dish, restaurant }) => (
                     <Link
-                      key={item.dish.id}
-                      href={`/content/${item.dish.id}`}
-                      className="flex gap-3 p-3 rounded-lg bg-[var(--color-surface-card)] hover:bg-[var(--color-surface-card-hover)] transition-colors"
+                      key={dish.id}
+                      href={`/restaurant/${restaurant?.slug}#dish-${dish.id}`}
+                      className="block p-4 rounded-lg bg-[var(--color-surface-card)] hover:bg-[var(--color-surface-card-hover)] transition-colors"
                     >
-                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-amber-900 via-orange-700 to-red-600 flex-shrink-0 flex items-center justify-center text-2xl">
-                        🍽️
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-[var(--color-text-primary)]">Featured Item</div>
-                        <div className="text-xs text-[var(--color-text-tertiary)]">{item.restaurant.name}</div>
-                        <div className="text-xs text-[var(--color-accent-primary)] font-medium mt-1">From ${item.restaurant.price_range * 5}</div>
+                      <div className="flex gap-4 items-start">
+                        <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-amber-900 via-orange-700 to-red-600 flex-shrink-0 flex items-center justify-center text-3xl overflow-hidden">
+                          {dish.thumbnail_url ? (
+                            <img src={dish.thumbnail_url} alt={dish.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>🍽️</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-base font-bold text-[var(--color-text-primary)]">{dish.name}</div>
+                          <div className="text-sm text-[var(--color-text-secondary)] mt-1">at {restaurant?.name}</div>
+                          <div className="text-xs text-[var(--color-accent-primary)] font-medium mt-2">{dish.feature_count} creators featured</div>
+                        </div>
                       </div>
                     </Link>
                   ))}
@@ -257,7 +285,7 @@ export default function SearchScreen() {
             )}
 
             {/* No results */}
-            {dishes.length === 0 && restaurants.length === 0 && creators.length === 0 && (
+            {searchedDishes.length === 0 && restaurants.length === 0 && creators.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">🔍</div>
                 <p className="text-[var(--color-text-secondary)]">No results for "{query}"</p>

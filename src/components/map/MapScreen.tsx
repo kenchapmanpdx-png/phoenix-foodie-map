@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFiltersStore } from '@/store/filters'
-import { useRestaurants } from '@/hooks/useSupabaseData'
+import { useSurfacedRestaurants } from '@/hooks/useSupabaseData'
 import { DEFAULT_CENTER } from '@/lib/constants'
 import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
-import { isOpenNow } from '@/lib/utils'
+import { isOpenNow, getNextOpenTime } from '@/lib/utils'
 import type { CuisineType, VibeTag, Restaurant } from '@/types'
 import FilterBar from '../feed/FilterBar'
 import dynamic from 'next/dynamic'
@@ -23,7 +23,7 @@ interface MapScreenProps {
 export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProps) {
   const router = useRouter()
   const { activeFilters, setCuisines, setVibes } = useFiltersStore()
-  const { restaurants: allRestaurants, loading } = useRestaurants()
+  const { restaurants: allRestaurants, loading } = useSurfacedRestaurants()
   const { position } = useGeolocation()
   const [isListView, setIsListView] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
@@ -41,7 +41,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
     }
   }, [initialCuisine, initialVibe, setCuisines, setVibes])
 
-  // Filter restaurants
+  // Filter restaurants (when openNow is on, show all but mark closed as dimmed in UI)
   const filteredRestaurants = useMemo(() => {
     let filtered: Restaurant[] = allRestaurants
 
@@ -69,9 +69,8 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
       )
     }
 
-    if (activeFilters.openNow) {
-      filtered = filtered.filter((restaurant) => isOpenNow(restaurant.hours))
-    }
+    // Note: openNow filter no longer hides closed restaurants; instead dims them in list view
+    // See ListView component for dimming CSS logic
 
     return filtered.filter((r) => r.is_active)
   }, [activeFilters, allRestaurants])
@@ -218,6 +217,8 @@ function ListView({
   onRestaurantTap: (restaurant: Restaurant) => void
   userPosition: { latitude: number; longitude: number } | null
 }) {
+  const { activeFilters } = useFiltersStore()
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sort toggle */}
@@ -248,49 +249,65 @@ function ListView({
       <div className="flex-1 overflow-y-auto hide-scrollbar">
         <div className="divide-y divide-white/10">
           {restaurants.length > 0 ? (
-            restaurants.map((restaurant) => (
-              <div
-                key={restaurant.id}
-                onClick={() => onRestaurantTap(restaurant)}
-                className="p-4 hover:bg-white/5 transition-colors cursor-pointer active:bg-white/10"
-              >
-                <div className="flex gap-3">
-                  {/* Restaurant image placeholder */}
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] overflow-hidden">
-                    <div className="w-full h-full flex items-center justify-center text-[var(--color-surface-primary)] text-2xl font-bold">
-                      {restaurant.name[0]}
-                    </div>
-                  </div>
+            restaurants.map((restaurant) => {
+              const isClosed = !isOpenNow(restaurant.hours)
+              const showDimmed = activeFilters.openNow && isClosed
+              const nextOpenTime = showDimmed ? getNextOpenTime(restaurant.hours) : null
 
-                  {/* Restaurant info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
-                      {restaurant.name}
-                    </h3>
-                    <p className="text-sm text-[var(--color-text-secondary)] truncate">
-                      {restaurant.cuisine_types.join(', ')}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-[var(--color-text-secondary)]">
-                      <span>
-                        {userPosition
-                          ? `${getDistanceMiles(userPosition.latitude, userPosition.longitude, restaurant.latitude, restaurant.longitude).toFixed(1)} mi`
-                          : '...'
-                        }
-                      </span>
-                      <span>•</span>
-                      <span>${restaurant.price_range}</span>
+              return (
+                <div
+                  key={restaurant.id}
+                  onClick={() => onRestaurantTap(restaurant)}
+                  className={`p-4 hover:bg-white/5 transition-colors cursor-pointer active:bg-white/10 ${
+                    showDimmed ? 'opacity-50 grayscale' : ''
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    {/* Restaurant image placeholder */}
+                    <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] overflow-hidden">
+                      <div className="w-full h-full flex items-center justify-center text-[var(--color-surface-primary)] text-2xl font-bold">
+                        {restaurant.name[0]}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Arrow indicator */}
-                  <div className="flex items-center justify-center text-[var(--color-text-secondary)]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    {/* Restaurant info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
+                        {restaurant.name}
+                      </h3>
+                      <p className="text-sm text-[var(--color-text-secondary)] truncate">
+                        {restaurant.cuisine_types.join(', ')}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-[var(--color-text-secondary)]">
+                        {showDimmed ? (
+                          <>
+                            <span>{nextOpenTime || 'Closed · No hours'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>
+                              {userPosition
+                                ? `${getDistanceMiles(userPosition.latitude, userPosition.longitude, restaurant.latitude, restaurant.longitude).toFixed(1)} mi`
+                                : '...'
+                              }
+                            </span>
+                            <span>•</span>
+                            <span>${restaurant.price_range}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Arrow indicator */}
+                    <div className="flex items-center justify-center text-[var(--color-text-secondary)]">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">

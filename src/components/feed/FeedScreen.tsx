@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useFiltersStore } from '@/store/filters'
 import { useContentWithRelations } from '@/hooks/useSupabaseData'
+import { getVibeTimeScore } from '@/lib/utils'
 import type { CuisineType, VibeTag, ContentWithRelations } from '@/types'
 import FilterBar from './FilterBar'
 import FeedCard from './FeedCard'
@@ -47,11 +48,14 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
       )
     }
 
-    // Sort by newest first (publish_date)
-    return filtered.sort(
-      (a, b) =>
-        new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime()
-    )
+    // Sort by time-of-day vibe relevance first, then recency
+    return filtered.sort((a, b) => {
+      const scoreA = getVibeTimeScore(a.vibe_tags)
+      const scoreB = getVibeTimeScore(b.vibe_tags)
+      // Primary: time-of-day vibe relevance, secondary: recency
+      if (Math.abs(scoreA - scoreB) > 0.1) return scoreB - scoreA
+      return new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime()
+    })
   }, [allContent, activeFilters])
 
   return (

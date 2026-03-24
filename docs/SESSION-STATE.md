@@ -123,6 +123,69 @@ Commit `b6e3d7a`:
 - **Skeleton loading**: FeedCardSkeleton shimmer during Supabase load. Map suppresses "No restaurants found" during loading.
 - **Back button fix**: Restaurant detail uses `history.back()` instead of hardcoded `/feed` link.
 
+## Completed: Restaurant Detail Dish-First Restructure (2026-03-24)
+
+Commit `b42610e`:
+- **Dish Catalog is now Section 1** (primary content, immediately below sticky action buttons)
+- **DishCard component**: Thumbnail from highest-engagement content, dish name, price, stacked creator avatars (max 3 + overflow badge), "Featured by X creators" count
+- **Horizontal scroll** for 4+ dishes (snap-x), vertical list for <4
+- **Tap dish → mini-feed expansion**: Shows all linked reels with creator avatar, handle, caption, date. Tap reel → Content Detail
+- **All Content grid** moved to Section 2: 3-column Instagram-style with creator avatar overlay (bottom-left) on each thumbnail, video play indicator (top-right)
+- **Sticky action buttons**: Book, Delivery, Directions, Menu, Call persist on scroll with backdrop blur
+- **Skeleton loading**: Full-page RestaurantDetailSkeleton while Supabase data loads
+- Data wiring: `contentDishLinks` junction → per-dish creator computation via `useMemo`, unique creators extracted from `ContentWithRelations.creator`
+- Header consolidated: cuisine, neighborhood, price range in subtitle row below restaurant name
+- Bookmark icon updated to proper bookmark SVG path
+
+## Completed: Real Creator Seed Data Import (2026-03-24)
+
+Wiped synthetic data and replaced with real Phoenix food creator content from Instagram.
+
+- **Script**: `scripts/seed-real-data.mjs` (Supabase JS client with anon key)
+- **Method**: Temporarily disabled RLS via Management API, ran seed script, re-enabled RLS
+- **Raw data files**: `seed-data/raw-azfoodguy.json`, `raw-happiesthourarizona.json`, `raw-nopaidfoodreviews.json`, `raw-azfoodie.json`
+- **Consolidated data**: `seed-data/real_seed_data.json`
+- **Row counts verified**:
+  - restaurants: 27
+  - creators: 4 (@azfoodguy, @happiesthourarizona, @nopaidfoodreviews, @azfoodie)
+  - content: 28
+  - dishes: 59
+  - content_dishes: 59
+- **Smoke test passed**: Feed (28 cards, all 4 creators), Map (27 pins on Leaflet), Restaurant Detail (Din Tai Fung: 5 dishes, hours, dish-first layout), Search (Popular + New on the map sections)
+- **Note**: Thumbnail URLs are placeholder; next step is capturing real reel thumbnails and creator avatars from Instagram
+
+## Completed: Thumbnail Rendering Fix (2026-03-24)
+
+Commits `42342fb`, `de2291c`, `c0f611c`:
+
+- **Root cause 1**: `VideoCard.tsx` had no `<img>` tag for `thumbnail_url`/`media_url` — only a gradient placeholder with emoji. 25/28 content items are `content_type=video`, routing to VideoCard. Added `<img>` with `absolute inset-0 object-cover`.
+- **Root cause 2**: `.feed-card` CSS class in `globals.css` sets `opacity: 0` (entrance animation). Both the outer `FeedCardWrapper` div AND inner card divs in `VideoCard`/`FeedCard` had this class. Only the outer wrapper gets `.in-view` from IntersectionObserver, so the inner card stayed `opacity: 0` forever. Removed `feed-card` class from inner card divs.
+- **Unsplash placeholder images**: 28 content thumbnails (640x800 food photos mapped by cuisine) and 4 creator avatars (200x200 portraits) populated via Supabase Management API.
+- **Verified on live site**: Feed cards show full-bleed food photos with creator avatars, restaurant names, Video badges, distance badges, and scrim overlays.
+
+## Completed: Instagram Reel Linking (2026-03-24)
+
+Commit `c2f2377`:
+
+- **original_url populated**: All 28 content rows updated in Supabase with real Instagram reel/post permalinks (e.g. `https://www.instagram.com/azfoodguy/reel/DJAuG2XMdsI/`). Ran via Management API using browser auth context.
+- **Play button wired**: VideoCard play button now calls `window.open(content.original_url, '_blank')` instead of just disappearing on hover. Clicking play opens the actual Instagram reel in a new tab.
+- **Verified on live site**: Clicked play on Three Thirty Three card → opened @azfoodguy's reel on Instagram with 967 likes, correct restaurant.
+
+## Completed: Amendment 6 & 3/4 Amendments (2026-03-24)
+
+**RestaurantDetailScreen (Amendment 6)**:
+- Enhanced dish display to function as menu: 5+ dishes show as horizontal menu, <5 show vertical
+- Added `tap_dish` event tracking via `useTrackEvent` hook on dish card clicks
+- Added empty state for unsurfaced restaurants: "More creator coverage coming soon — know a foodie who's been here? Share this page."
+- View Menu button already secondary in styling (same class as Directions, Call)
+
+**MapScreen (Amendment 3/4)**:
+- Added `useSurfacedRestaurants` hook in `useSupabaseData.ts` to fetch only surfaced restaurants
+- Updated MapScreen to use `useSurfacedRestaurants` instead of `useRestaurants`
+- Implemented Open Now dimming (not hiding): When `openNow` filter active, closed restaurants show with `opacity-50 grayscale` classes
+- Shows "Closed · [next opening time]" text for closed restaurants when openNow filter on
+- Imported `getNextOpenTime` utility for next opening calculation
+
 ## Next Steps
 
 1. **Video playback** (#7): Implement `<video>` with IntersectionObserver autoplay, muted+playsinline, 3-loop pause

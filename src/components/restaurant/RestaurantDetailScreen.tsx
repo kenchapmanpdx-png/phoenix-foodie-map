@@ -7,6 +7,7 @@ import { useUserStore } from '@/store/user'
 import { isOpenNow } from '@/lib/utils'
 import { buildOutboundUrl } from '@/lib/utm'
 import { useContentWithRelations, useDishesByRestaurant, useContentDishLinks } from '@/hooks/useSupabaseData'
+import { useTrackEvent } from '@/hooks/useTrackEvent'
 import { RestaurantDetailSkeleton, ContentGridSkeleton } from '@/components/shared/Skeleton'
 
 interface Props {
@@ -25,6 +26,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
   const [expandHours, setExpandHours] = useState(false)
   const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
   const { toggleSaveRestaurant, savedRestaurantIds } = useUserStore()
+  const track = useTrackEvent()
   const isSaved = savedRestaurantIds.includes(restaurant.id)
   const { content: allContent, loading: contentLoading } = useContentWithRelations()
   const { dishes, loading: dishesLoading } = useDishesByRestaurant(restaurant.id)
@@ -267,32 +269,38 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
         </div>
 
         {/* ─── SECTION 1: Dish Catalog ─── */}
-        {dishData.length > 0 && (
+        {dishData.length > 0 ? (
           <div>
             <h2 className="text-lg font-semibold text-text-primary mb-4">What&apos;s Good Here</h2>
 
-            {dishData.length >= 4 ? (
-              /* Horizontal scroll for 4+ dishes */
+            {dishData.length >= 5 ? (
+              /* Horizontal scroll for 5+ dishes */
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory hide-scrollbar">
                 {dishData.map((dd) => (
                   <DishCard
                     key={dd.dish.id}
                     data={dd}
                     isExpanded={expandedDishId === dd.dish.id}
-                    onTap={() => setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)}
+                    onTap={() => {
+                      setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)
+                      track('tap_dish', dd.dish.id, restaurant.id)
+                    }}
                     horizontal
                   />
                 ))}
               </div>
             ) : (
-              /* Vertical list for <4 dishes */
+              /* Vertical list for <5 dishes */
               <div className="space-y-3">
                 {dishData.map((dd) => (
                   <div key={dd.dish.id}>
                     <DishCard
                       data={dd}
                       isExpanded={expandedDishId === dd.dish.id}
-                      onTap={() => setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)}
+                      onTap={() => {
+                        setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)
+                        track('tap_dish', dd.dish.id, restaurant.id)
+                      }}
                     />
                     {/* Expanded mini-feed inline for vertical layout */}
                     {expandedDishId === dd.dish.id && dd.contentItems.length > 0 && (
@@ -304,7 +312,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
             )}
 
             {/* Expanded mini-feed for horizontal layout — renders below the scroll row */}
-            {dishData.length >= 4 && expandedDishId && (() => {
+            {dishData.length >= 5 && expandedDishId && (() => {
               const expanded = dishData.find((dd) => dd.dish.id === expandedDishId)
               if (!expanded || expanded.contentItems.length === 0) return null
               return (
@@ -325,7 +333,20 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
               )
             })()}
           </div>
-        )}
+        ) : restaurant.is_surfaced === false ? (
+          // Empty state for unsurfaced restaurants
+          <div className="text-center py-8 px-4">
+            <p className="text-text-secondary mb-1">More creator coverage coming soon</p>
+            <p className="text-text-secondary text-sm">Know a foodie who&apos;s been here?
+              <Link
+                href={`https://share.example.com?restaurant=${restaurant.slug}`}
+                className="text-accent-primary hover:text-accent-secondary ml-1 inline-block"
+              >
+                Share this page
+              </Link>
+            </p>
+          </div>
+        ) : null}
 
         {/* ─── SECTION 2: All Content Grid (3-col Instagram-style) ─── */}
         {restaurantContent.length > 0 && (

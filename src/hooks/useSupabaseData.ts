@@ -18,6 +18,20 @@ export function useRestaurants() {
   return { restaurants, loading }
 }
 
+export function useSurfacedRestaurants() {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    queries.fetchSurfacedRestaurants().then(data => {
+      setRestaurants(data)
+      setLoading(false)
+    })
+  }, [])
+
+  return { restaurants, loading }
+}
+
 export function useRestaurantBySlug(slug: string) {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [loading, setLoading] = useState(true)

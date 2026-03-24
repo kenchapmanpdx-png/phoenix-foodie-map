@@ -3,13 +3,28 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
-import { useContentWithRelations } from '@/hooks/useSupabaseData'
+import { useContentWithRelations, useDishes } from '@/hooks/useSupabaseData'
+import { useUserStore } from '@/store/user'
+import { supabase } from '@/lib/supabase'
 import ContentCard from '@/components/shared/ContentCard'
 
 export default function HomeScreen() {
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null)
   const vibeScrollRef = useRef<HTMLDivElement>(null)
   const { content: allContent, loading } = useContentWithRelations()
+  const { dishes } = useDishes()
+  const { user } = useUserStore()
+
+  // Amendment 9: Track last_app_open on mount
+  useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('users')
+        .update({ last_app_open: new Date().toISOString() })
+        .eq('id', user.id)
+        .then(() => {})
+    }
+  }, [user?.id])
 
   // Warm gradient combinations for cuisine cards
   const cuisineGradients = [
@@ -41,6 +56,11 @@ export default function HomeScreen() {
 
   // Get featured content (first 5 from DB)
   const featuredContent = allContent.slice(0, 5)
+
+  // Amendment 1: Sort dishes by feature_count descending, take top 8
+  const topDishes = dishes
+    .sort((a, b) => (b.feature_count || 0) - (a.feature_count || 0))
+    .slice(0, 8)
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
@@ -140,6 +160,32 @@ export default function HomeScreen() {
           </div>
         </div>
       </div>
+
+      {/* SECTION D: Dishes People Are Ordering (Amendment 1) */}
+      <section className="px-4 mb-8">
+        <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-3">Dishes People Are Ordering</h2>
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+          {topDishes.map(dish => (
+            <Link href="/feed" key={dish.id}>
+              <div className="w-40 flex-shrink-0 rounded-lg overflow-hidden bg-[var(--color-surface-card)]">
+                <div className="relative w-full aspect-[4/3]">
+                  {dish.thumbnail_url ? (
+                    <img src={dish.thumbnail_url} alt={dish.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-amber-900 to-orange-600 flex items-center justify-center">
+                      <span className="text-3xl opacity-40">🍽️</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-1">{dish.name}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)] line-clamp-1">{dish.feature_count} creator{dish.feature_count !== 1 ? 's' : ''} featured</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* SECTION C: Trending Now */}
       <div className="py-6">

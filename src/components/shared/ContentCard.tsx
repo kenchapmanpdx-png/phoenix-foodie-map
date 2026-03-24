@@ -109,6 +109,16 @@ export default function ContentCard({ content, size, onClick }: ContentCardProps
             {content.restaurant.name}
           </div>
 
+          {/* Amendment 5: Creator Pick badge */}
+          {(content.restaurant.creator_count ?? 0) >= 3 && (
+            <div className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#F59E0B]/90 rounded-full mb-1">
+              <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span className="text-[10px] font-bold text-black">Creator Pick</span>
+            </div>
+          )}
+
           {/* FTC disclosure label */}
           {content.sponsorship_status !== 'organic' && (
             <div className="inline-flex items-center w-fit px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded-full border border-white/20">

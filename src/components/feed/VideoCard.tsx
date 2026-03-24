@@ -106,6 +106,16 @@ export default function VideoCard({ content }: VideoCardProps) {
           <span className="text-xs font-semibold text-white">Video</span>
         </div>
 
+        {/* Amendment 5: Creator Pick badge */}
+        {(content.restaurant.creator_count ?? 0) >= 3 && (
+          <div className="absolute top-20 left-4 z-10 inline-flex items-center gap-1 px-2 py-1 bg-[#F59E0B]/90 rounded-full backdrop-blur-sm">
+            <svg className="w-3 h-3 text-black" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span className="text-xs font-bold text-black">Creator Pick</span>
+          </div>
+        )}
+
         {/* Top scrim */}
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 via-black/30 to-transparent pointer-events-none" />
 
