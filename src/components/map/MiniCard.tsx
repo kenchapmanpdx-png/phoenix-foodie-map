@@ -60,20 +60,24 @@ export default function MiniCard({ restaurant, onClose, onTap }: MiniCardProps) 
     }
   }, [isDragging, onClose])
 
-  // Handle outside click
+  // Handle outside click — delay listener to avoid the same click that opened the card
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        // Check if click is on the card itself
-        const card = containerRef.current?.querySelector('[data-card]')
-        if (card && !card.contains(e.target as Node)) {
-          onClose()
-        }
+        onClose()
       }
     }
 
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    // Defer adding the listener so the marker click that triggered this mount
+    // doesn't immediately fire handleClickOutside and close the card
+    const timerId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timerId)
+      document.removeEventListener('click', handleClickOutside)
+    }
   }, [onClose])
 
   return (
