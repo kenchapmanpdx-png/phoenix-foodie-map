@@ -8,6 +8,9 @@ function parseRestaurant(row: any): Restaurant {
     latitude: typeof row.latitude === 'string' ? parseFloat(row.latitude) : row.latitude,
     longitude: typeof row.longitude === 'string' ? parseFloat(row.longitude) : row.longitude,
     price_range: Number(row.price_range),
+    creator_count: Number(row.creator_count ?? 0),
+    content_count: Number(row.content_count ?? 0),
+    is_surfaced: Boolean(row.is_surfaced ?? false),
   }
 }
 
@@ -18,6 +21,19 @@ function parseCreator(row: any): Creator {
   }
 }
 
+// Amendment 4: surfaced-only restaurants for consumer feeds/search/map
+export async function fetchSurfacedRestaurants(): Promise<Restaurant[]> {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('is_active', true)
+    .eq('is_surfaced', true)
+    .order('name')
+  if (error) { console.error('fetchSurfacedRestaurants error:', error); return [] }
+  return (data || []).map(parseRestaurant)
+}
+
+// All restaurants (includes unsurfaced — for dashboard/admin use)
 export async function fetchRestaurants(): Promise<Restaurant[]> {
   const { data, error } = await supabase
     .from('restaurants')
@@ -28,6 +44,7 @@ export async function fetchRestaurants(): Promise<Restaurant[]> {
   return (data || []).map(parseRestaurant)
 }
 
+// Single restaurant by slug — accessible even if unsurfaced (Amendment 4: direct URL access)
 export async function fetchRestaurantBySlug(slug: string): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
@@ -109,6 +126,28 @@ export async function fetchDishes(): Promise<Dish[]> {
   return data || []
 }
 
+// Amendment 1: top dishes for home screen "Dishes People Are Ordering"
+export async function fetchTopDishes(limit = 8): Promise<Dish[]> {
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*')
+    .order('feature_count', { ascending: false })
+    .limit(limit)
+  if (error) { console.error('fetchTopDishes error:', error); return [] }
+  return data || []
+}
+
+// Amendment 7: search dishes by name (fuzzy via ilike)
+export async function searchDishes(query: string): Promise<Dish[]> {
+  const { data, error } = await supabase
+    .from('dishes')
+    .select('*')
+    .ilike('name', `%${query}%`)
+    .order('feature_count', { ascending: false })
+  if (error) { console.error('searchDishes error:', error); return [] }
+  return data || []
+}
+
 export async function fetchDishesByRestaurant(restaurantId: string): Promise<Dish[]> {
   const { data, error } = await supabase
     .from('dishes')
@@ -121,7 +160,6 @@ export async function fetchDishesByRestaurant(restaurantId: string): Promise<Dis
 
 // Fetch content_dishes junctions for a restaurant's dishes
 export async function fetchContentDishLinks(restaurantId: string): Promise<Array<{ content_id: string; dish_id: string }>> {
-  // Get dish IDs for this restaurant first, then get junctions
   const dishes = await fetchDishesByRestaurant(restaurantId)
   if (dishes.length === 0) return []
 
@@ -134,12 +172,12 @@ export async function fetchContentDishLinks(restaurantId: string): Promise<Array
   return data || []
 }
 
-// Composed: content with creator and restaurant joined
+// Amendment 4: content with relations — only surfaced restaurants in consumer feeds
 export async function fetchContentWithRelations(): Promise<ContentWithRelations[]> {
   const [contentRes, creatorsRes, restaurantsRes] = await Promise.all([
     fetchContent(),
     fetchCreators(),
-    fetchRestaurants(),
+    fetchSurfacedRestaurants(),
   ])
 
   const creatorsMap = new Map(creatorsRes.map(c => [c.id, c]))
@@ -155,6 +193,7 @@ export async function fetchContentWithRelations(): Promise<ContentWithRelations[
     .filter((c): c is ContentWithRelations => c !== null)
 }
 
+// Single content by ID — no surfacing filter (direct URL access OK)
 export async function fetchContentWithRelationsById(id: string): Promise<ContentWithRelations | null> {
   const content = await fetchContentById(id)
   if (!content) return null

@@ -13,6 +13,7 @@ export type EventType =
   | 'tap_call'
   | 'tap_order'
   | 'tap_menu'
+  | 'tap_dish'
   | 'share'
 
 export interface EventMetadata {
@@ -31,6 +32,8 @@ export interface TrackEventParams {
   utm_campaign?: string
   utm_content?: string
   utm_term?: string
+  dish_id?: string
+  time_of_day_bucket?: string
   metadata?: EventMetadata
 }
 
@@ -65,6 +68,8 @@ export function trackEvent(params: TrackEventParams): AnalyticsEvent {
     utm_campaign: params.utm_campaign || '',
     utm_content: params.utm_content || '',
     utm_term: params.utm_term || '',
+    dish_id: params.dish_id || null,
+    time_of_day_bucket: (params.time_of_day_bucket as AnalyticsEvent['time_of_day_bucket']) || null,
     created_at: new Date().toISOString(),
   }
 

@@ -34,6 +34,10 @@ export interface Restaurant {
   is_active: boolean;
   created_at: string;
   subscription_tier: string;
+  // Amendment 4/5: computed columns from trigger (optional — DB defaults)
+  creator_count?: number;
+  content_count?: number;
+  is_surfaced?: boolean;
 }
 
 // Creator type
@@ -128,6 +132,8 @@ export interface User {
   preferred_vibes: VibeTag[];
   onboarding_completed: boolean;
   created_at: string;
+  // Amendment 9: engagement tracking
+  last_app_open?: string | null;
 }
 
 // Save (collection item) type
@@ -137,7 +143,18 @@ export interface Save {
   restaurant_id: string;
   collection_name: string;
   created_at: string;
+  // Amendment 10: push notification trigger
+  last_action_at?: string | null;
 }
+
+// Event types (expanded per amendments)
+export type EventType =
+  | 'view' | 'save'
+  | 'tap_restaurant' | 'tap_book' | 'tap_directions' | 'tap_call'
+  | 'tap_order' | 'tap_menu' | 'tap_dish'
+  | 'share';
+
+export type TimeOfDayBucket = 'morning' | 'lunch' | 'afternoon' | 'evening' | 'late_night';
 
 // Analytics event type
 export interface AnalyticsEvent {
@@ -146,8 +163,11 @@ export interface AnalyticsEvent {
   content_id: string;
   restaurant_id: string;
   creator_id: string;
-  event_type: string;
+  event_type: EventType | string;
   source_screen: string;
+  // Amendment 2/12: dish-level + time tracking
+  dish_id?: string | null;
+  time_of_day_bucket?: TimeOfDayBucket | null;
   utm_source: string;
   utm_medium: string;
   utm_campaign: string;

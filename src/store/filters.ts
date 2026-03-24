@@ -17,12 +17,18 @@ interface FiltersState {
   clearAll: () => void
 }
 
+// Amendment 3: Open Now defaults to true between 11am-12am
+function getOpenNowDefault(): boolean {
+  const hour = new Date().getHours()
+  return hour >= 11 || hour === 0 // 11am to 12am (midnight)
+}
+
 const initialFilters = {
   cuisines: [] as CuisineType[],
   vibes: [] as VibeTag[],
   areas: [] as string[],
   priceRange: [] as number[],
-  openNow: false,
+  openNow: getOpenNowDefault(),
 }
 
 export const useFiltersStore = create<FiltersState>((set) => ({
