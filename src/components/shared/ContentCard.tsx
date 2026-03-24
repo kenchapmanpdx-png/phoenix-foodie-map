@@ -52,6 +52,16 @@ export default function ContentCard({ content, size, onClick }: ContentCardProps
           <span className="text-6xl opacity-20">🍽️</span>
         </div>
 
+        {/* Actual thumbnail image */}
+        {(content.thumbnail_url || content.media_url) && (
+          <img
+            src={content.thumbnail_url || content.media_url}
+            alt={content.restaurant.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
+
         {/* Card scrim gradient at bottom */}
         <div className="absolute inset-0 card-scrim-bottom pointer-events-none" />
 

@@ -68,6 +68,16 @@ export default function FeedCard({ content }: FeedCardProps) {
           <span className="text-9xl opacity-15">🍽️</span>
         </div>
 
+        {/* Thumbnail image */}
+        {(content.thumbnail_url || content.media_url) && (
+          <img
+            src={content.thumbnail_url || content.media_url}
+            alt={content.restaurant.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
+
         {/* Top scrim for readability */}
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 via-black/30 to-transparent pointer-events-none" />
 
