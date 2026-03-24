@@ -1,36 +1,77 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Restaurant } from '@/types'
+import type { Restaurant, ContentWithRelations, Creator, Dish } from '@/types'
 import { useUserStore } from '@/store/user'
 import { isOpenNow } from '@/lib/utils'
 import { buildOutboundUrl } from '@/lib/utm'
 import { useContentWithRelations, useDishesByRestaurant, useContentDishLinks } from '@/hooks/useSupabaseData'
-// Icons are inlined below
+import { RestaurantDetailSkeleton, ContentGridSkeleton } from '@/components/shared/Skeleton'
 
 interface Props {
   restaurant: Restaurant
 }
 
+// Computed dish data with linked creators and content
+interface DishWithCreators {
+  dish: Dish
+  creators: Creator[]
+  contentItems: ContentWithRelations[]
+  bestThumbnail: string | null
+}
+
 export default function RestaurantDetailScreen({ restaurant }: Props) {
   const [expandHours, setExpandHours] = useState(false)
-  const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
+  const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
   const { toggleSaveRestaurant, savedRestaurantIds } = useUserStore()
   const isSaved = savedRestaurantIds.includes(restaurant.id)
   const { content: allContent, loading: contentLoading } = useContentWithRelations()
   const { dishes, loading: dishesLoading } = useDishesByRestaurant(restaurant.id)
-  const { links: contentDishLinks } = useContentDishLinks(restaurant.id)
+  const { links: contentDishLinks, loading: linksLoading } = useContentDishLinks(restaurant.id)
 
-  // Get all content for this restaurant
-  const restaurantContent = allContent.filter((c) => c.restaurant_id === restaurant.id)
+  // All content for this restaurant, newest first
+  const restaurantContent = useMemo(
+    () =>
+      allContent
+        .filter((c) => c.restaurant_id === restaurant.id)
+        .sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime()),
+    [allContent, restaurant.id]
+  )
 
-  // Filter by selected dish if one is tapped
-  const content = selectedDishId
-    ? restaurantContent.filter((c) => contentDishLinks.some((link) => link.content_id === c.id && link.dish_id === selectedDishId))
-    : restaurantContent
+  // Compute per-dish data: linked creators, content items, best thumbnail
+  const dishData: DishWithCreators[] = useMemo(() => {
+    if (!dishes.length || !restaurantContent.length) return dishes.map((d) => ({ dish: d, creators: [], contentItems: [], bestThumbnail: d.thumbnail_url || null }))
 
-  const priceDisplay = '$ '.repeat(restaurant.price_range)
+    return dishes.map((dish) => {
+      // Find content IDs linked to this dish
+      const linkedContentIds = contentDishLinks
+        .filter((link) => link.dish_id === dish.id)
+        .map((link) => link.content_id)
+
+      // Get full content items for this dish
+      const contentItems = restaurantContent
+        .filter((c) => linkedContentIds.includes(c.id))
+        .sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime())
+
+      // Extract unique creators
+      const creatorMap = new Map<string, Creator>()
+      contentItems.forEach((c) => {
+        if (!creatorMap.has(c.creator.id)) {
+          creatorMap.set(c.creator.id, c.creator)
+        }
+      })
+      const creators = Array.from(creatorMap.values())
+
+      // Best thumbnail: highest engagement content, fallback to dish thumbnail
+      const bestContent = [...contentItems].sort((a, b) => (b.view_count + b.save_count) - (a.view_count + a.save_count))[0]
+      const bestThumbnail = bestContent?.thumbnail_url || dish.thumbnail_url || null
+
+      return { dish, creators, contentItems, bestThumbnail }
+    })
+  }, [dishes, restaurantContent, contentDishLinks])
+
+  const priceDisplay = '$'.repeat(restaurant.price_range)
 
   const getTodayHours = () => {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -47,24 +88,14 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   const handleBooking = () => {
     if (restaurant.booking_url) {
-      const url = buildOutboundUrl(
-        restaurant.booking_url,
-        restaurant.slug,
-        '',
-        'booking'
-      )
+      const url = buildOutboundUrl(restaurant.booking_url, restaurant.slug, '', 'booking')
       window.open(url, '_blank')
     }
   }
 
   const handleDelivery = () => {
     if (restaurant.delivery_url) {
-      const url = buildOutboundUrl(
-        restaurant.delivery_url,
-        restaurant.slug,
-        '',
-        'delivery'
-      )
+      const url = buildOutboundUrl(restaurant.delivery_url, restaurant.slug, '', 'delivery')
       window.open(url, '_blank')
     }
   }
@@ -81,19 +112,18 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   const handleViewMenu = () => {
     if (restaurant.menu_url) {
-      const url = buildOutboundUrl(
-        restaurant.menu_url,
-        restaurant.slug,
-        '',
-        'menu'
-      )
+      const url = buildOutboundUrl(restaurant.menu_url, restaurant.slug, '', 'menu')
       window.open(url, '_blank')
     }
   }
 
+  const loading = contentLoading || dishesLoading || linksLoading
+
+  if (loading) return <RestaurantDetailSkeleton />
+
   return (
     <div className="min-h-screen bg-surface-primary">
-      {/* Back button — uses browser history so it works from map, feed, or search */}
+      {/* Back button */}
       <button
         onClick={() => {
           if (window.history.length > 1) {
@@ -104,39 +134,31 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
         }}
         className="fixed top-4 left-4 z-40 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
       >
-        <svg
-          className="w-6 h-6 text-white"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
       </button>
 
-      {/* Header hero image */}
+      {/* Header hero */}
       <div className="relative h-64 bg-gradient-to-br from-amber-900/20 to-orange-900/20">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center px-4">
             <h1 className="text-4xl font-bold text-text-primary mb-2">{restaurant.name}</h1>
+            <div className="flex items-center justify-center gap-2 text-sm text-text-secondary">
+              <span>{restaurant.cuisine_types.join(' · ')}</span>
+              <span>·</span>
+              <span>{restaurant.neighborhood}</span>
+              <span>·</span>
+              <span>{priceDisplay}</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main content */}
       <div className="px-4 py-6 space-y-6 pb-20">
-        {/* Cuisine and vibe tags */}
+        {/* Tags */}
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {restaurant.cuisine_types.map((cuisine) => (
-              <span
-                key={cuisine}
-                className="px-3 py-1 bg-surface-card border border-surface-light/20 text-text-primary text-sm rounded-full"
-              >
-                {cuisine}
-              </span>
-            ))}
-          </div>
           {restaurant.vibe_tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {restaurant.vibe_tags.map((tag) => (
@@ -151,84 +173,41 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           )}
         </div>
 
-        {/* Location and hours */}
-        <div className="space-y-2">
-          <div className="flex items-start gap-2 text-text-secondary text-sm">
-            <svg
-              className="w-4 h-4 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <div>{restaurant.neighborhood}</div>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <svg
-              className="w-4 h-4 flex-shrink-0 mt-0.5 text-accent-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 2m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="flex-1">
-              <div className={`text-sm font-medium ${isOpen ? 'text-green-400' : 'text-red-400'}`}>
-                {isOpen ? 'Open now' : 'Closed'}
-              </div>
-              {todayHours.length > 0 && (
-                <div className="text-sm text-text-secondary">
-                  {todayHours.map((period, idx) => (
-                    <div key={idx}>
-                      {period.open} - {period.close}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={() => setExpandHours(!expandHours)}
-                className="text-xs text-accent-primary font-medium mt-1 hover:text-accent-secondary"
-              >
-                {expandHours ? 'Hide' : 'View'} full schedule
-              </button>
-
-              {/* Expanded hours */}
-              {expandHours && (
-                <div className="mt-3 space-y-1 text-xs text-text-secondary">
-                  {Object.entries(restaurant.hours).map(([day, periods]) => (
-                    <div key={day} className="flex justify-between">
-                      <span className="font-medium capitalize">{day}:</span>
-                      <span>
-                        {!periods || periods.length === 0
-                          ? 'Closed'
-                          : periods.map((p) => `${p.open}-${p.close}`).join(', ')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Price range */}
-          <div className="text-sm text-text-secondary">{priceDisplay}</div>
+        {/* Hours row */}
+        <div className="flex items-center gap-3">
+          <span className={`text-sm font-medium ${isOpen ? 'text-green-400' : 'text-red-400'}`}>
+            {isOpen ? 'Open now' : 'Closed'}
+          </span>
+          {todayHours.length > 0 && (
+            <span className="text-sm text-text-secondary">
+              {todayHours.map((p) => `${p.open}–${p.close}`).join(', ')}
+            </span>
+          )}
+          <button
+            onClick={() => setExpandHours(!expandHours)}
+            className="text-xs text-accent-primary font-medium hover:text-accent-secondary"
+          >
+            {expandHours ? 'Hide' : 'Full schedule'}
+          </button>
         </div>
 
-        {/* Action buttons - sticky section */}
-        <div className="space-y-2">
+        {expandHours && (
+          <div className="space-y-1 text-xs text-text-secondary bg-surface-card rounded-lg p-3">
+            {Object.entries(restaurant.hours).map(([day, periods]) => (
+              <div key={day} className="flex justify-between">
+                <span className="font-medium capitalize">{day}</span>
+                <span>
+                  {!periods || periods.length === 0
+                    ? 'Closed'
+                    : periods.map((p) => `${p.open}–${p.close}`).join(', ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons — sticky on scroll */}
+        <div className="sticky top-0 z-30 bg-surface-primary/95 backdrop-blur-md py-3 -mx-4 px-4 space-y-2 border-b border-white/5">
           {restaurant.booking_url && (
             <button
               onClick={handleBooking}
@@ -237,41 +216,36 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
               Book a Table
             </button>
           )}
-
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex gap-2">
             {restaurant.delivery_url && (
               <button
                 onClick={handleDelivery}
-                className="bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
+                className="flex-1 bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
               >
                 Order Delivery
               </button>
             )}
             <button
               onClick={handleDirections}
-              className="bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
+              className="flex-1 bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
             >
-              Get Directions
+              Directions
             </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
             {restaurant.menu_url && (
               <button
                 onClick={handleViewMenu}
-                className="bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
+                className="flex-1 bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors"
               >
-                View Menu
+                Menu
               </button>
             )}
             <a
               href={`tel:${restaurant.phone}`}
-              className="bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors text-center"
+              className="flex-1 bg-surface-card hover:bg-surface-light/10 text-text-primary border border-surface-light/20 font-medium py-2 rounded-lg text-sm transition-colors text-center"
             >
               Call
             </a>
           </div>
-
           <button
             onClick={handleSave}
             className={`w-full font-medium py-2 rounded-lg text-sm transition-colors border border-surface-light/20 flex items-center justify-center gap-2 ${
@@ -286,71 +260,114 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 5a2 2 0 012-2h6.293A1 1 0 0115 3v0a1 1 0 00-1-1H7a4 4 0 00-4 4v10a4 4 0 004 4h10a4 4 0 004-4V8.707a1 1 0 00-1-1h0a1 1 0 00-1 1v10a2 2 0 01-2 2H7a2 2 0 01-2-2V5z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
             {isSaved ? 'Saved' : 'Save'}
           </button>
         </div>
 
-        {/* Creator content grid */}
+        {/* ─── SECTION 1: Dish Catalog ─── */}
+        {dishData.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary mb-4">What&apos;s Good Here</h2>
+
+            {dishData.length >= 4 ? (
+              /* Horizontal scroll for 4+ dishes */
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory hide-scrollbar">
+                {dishData.map((dd) => (
+                  <DishCard
+                    key={dd.dish.id}
+                    data={dd}
+                    isExpanded={expandedDishId === dd.dish.id}
+                    onTap={() => setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)}
+                    horizontal
+                  />
+                ))}
+              </div>
+            ) : (
+              /* Vertical list for <4 dishes */
+              <div className="space-y-3">
+                {dishData.map((dd) => (
+                  <div key={dd.dish.id}>
+                    <DishCard
+                      data={dd}
+                      isExpanded={expandedDishId === dd.dish.id}
+                      onTap={() => setExpandedDishId(expandedDishId === dd.dish.id ? null : dd.dish.id)}
+                    />
+                    {/* Expanded mini-feed inline for vertical layout */}
+                    {expandedDishId === dd.dish.id && dd.contentItems.length > 0 && (
+                      <DishMiniFeed contentItems={dd.contentItems} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Expanded mini-feed for horizontal layout — renders below the scroll row */}
+            {dishData.length >= 4 && expandedDishId && (() => {
+              const expanded = dishData.find((dd) => dd.dish.id === expandedDishId)
+              if (!expanded || expanded.contentItems.length === 0) return null
+              return (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-text-secondary">
+                      Reels featuring {expanded.dish.name}
+                    </h3>
+                    <button
+                      onClick={() => setExpandedDishId(null)}
+                      className="text-xs text-accent-primary font-medium"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <DishMiniFeed contentItems={expanded.contentItems} />
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* ─── SECTION 2: All Content Grid (3-col Instagram-style) ─── */}
         {restaurantContent.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              {selectedDishId
-                ? `Content featuring ${dishes.find(d => d.id === selectedDishId)?.name ?? 'this dish'}`
-                : 'Creator Content'}
-              {selectedDishId && content.length === 0 && (
-                <span className="text-sm font-normal text-text-secondary ml-2">
-                  — no linked content yet
-                </span>
-              )}
+              All Content · {restaurantContent.length} post{restaurantContent.length !== 1 ? 's' : ''}
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {content.map((item) => (
+            <div className="grid grid-cols-3 gap-1">
+              {restaurantContent.map((item) => (
                 <Link
                   key={item.id}
                   href={`/content/${item.id}`}
-                  className="group relative aspect-square rounded-lg overflow-hidden bg-surface-card"
+                  className="group relative aspect-square overflow-hidden bg-surface-card"
                 >
-                  {item.content_type === 'video' ? (
-                    <>
-                      <img
-                        src={item.thumbnail_url}
-                        alt={item.restaurant.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
-                          <svg
-                            className="w-5 h-5 text-white fill-white"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <img
-                      src={item.media_url}
-                      alt={item.restaurant.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-2 card-scrim-bottom">
-                    <div className="text-xs font-medium text-text-primary line-clamp-1">
-                      {item.creator.display_name}
+                  <img
+                    src={item.thumbnail_url || item.media_url}
+                    alt={item.caption || restaurant.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  {/* Video play indicator */}
+                  {item.content_type === 'video' && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <svg className="w-4 h-4 text-white drop-shadow-md" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
                     </div>
-                    {item.vibe_tags.length > 0 && (
-                      <div className="text-xs text-text-secondary line-clamp-1">
-                        {item.vibe_tags[0].replace('_', ' ')}
-                      </div>
-                    )}
+                  )}
+                  {/* Creator avatar overlay — bottom-left */}
+                  <div className="absolute bottom-1.5 left-1.5">
+                    <div className="w-6 h-6 rounded-full border-2 border-white/80 overflow-hidden bg-surface-card shadow-sm">
+                      {item.creator.avatar_url ? (
+                        <img
+                          src={item.creator.avatar_url}
+                          alt={item.creator.display_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs font-bold text-text-primary bg-accent-primary/30">
+                          {item.creator.display_name[0]}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -358,75 +375,20 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           </div>
         )}
 
-        {/* Dishes section — tap to filter content */}
-        {dishes.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text-primary">What to Order</h2>
-              {selectedDishId && (
-                <button
-                  onClick={() => setSelectedDishId(null)}
-                  className="text-xs text-accent-primary font-medium"
-                >
-                  Show all content
-                </button>
-              )}
-            </div>
-            <div className="space-y-3">
-              {dishes.map((dish) => {
-                const isSelected = selectedDishId === dish.id
-                return (
-                  <div
-                    key={dish.id}
-                    onClick={() => setSelectedDishId(isSelected ? null : dish.id)}
-                    className={`bg-surface-card rounded-lg p-3 border transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'border-accent-primary/60 bg-accent-primary/5'
-                        : 'border-surface-light/10 hover:border-surface-light/20'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 flex-shrink-0 rounded bg-gradient-to-br from-amber-900/20 to-orange-900/20" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-text-primary line-clamp-1">{dish.name}</h3>
-                        <p className="text-xs text-text-secondary line-clamp-2 mt-1">{dish.description}</p>
-                        <div className="flex items-center justify-between mt-2 gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-accent-primary/20 text-accent-primary text-xs rounded">
-                              {dish.category}
-                            </span>
-                            <span className="text-xs text-text-secondary">
-                              Featured {dish.feature_count}x
-                            </span>
-                          </div>
-                          <span className="font-semibold text-text-primary">${dish.price}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Info section */}
+        {/* ─── SECTION 3: Info ─── */}
         <div className="space-y-4 border-t border-surface-light/10 pt-6">
-          <h2 className="text-lg font-semibold text-text-primary">Restaurant Info</h2>
-
+          <h2 className="text-lg font-semibold text-text-primary">Info</h2>
           <div className="space-y-3 text-sm">
             <div>
               <div className="text-text-secondary mb-1">Address</div>
               <p className="text-text-primary">{restaurant.address}</p>
             </div>
-
             <div>
               <div className="text-text-secondary mb-1">Phone</div>
               <a href={`tel:${restaurant.phone}`} className="text-accent-primary hover:text-accent-secondary">
                 {restaurant.phone}
               </a>
             </div>
-
             {restaurant.website && (
               <div>
                 <div className="text-text-secondary mb-1">Website</div>
@@ -440,7 +402,6 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
                 </a>
               </div>
             )}
-
             {(restaurant.instagram_handle || restaurant.tiktok_handle) && (
               <div>
                 <div className="text-text-secondary mb-2">Follow</div>
@@ -477,6 +438,172 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ─── Dish Card ─── */
+
+function DishCard({
+  data,
+  isExpanded,
+  onTap,
+  horizontal = false,
+}: {
+  data: DishWithCreators
+  isExpanded: boolean
+  onTap: () => void
+  horizontal?: boolean
+}) {
+  const { dish, creators, contentItems, bestThumbnail } = data
+  const creatorCount = creators.length
+
+  return (
+    <div
+      onClick={onTap}
+      className={`cursor-pointer transition-all ${
+        horizontal
+          ? 'flex-shrink-0 w-44 snap-start'
+          : 'w-full'
+      } ${isExpanded ? 'ring-2 ring-accent-primary/60' : ''}`}
+    >
+      <div className={`bg-surface-card rounded-xl overflow-hidden border transition-colors ${
+        isExpanded ? 'border-accent-primary/60' : 'border-surface-light/10 hover:border-surface-light/20'
+      }`}>
+        {/* Thumbnail */}
+        <div className={`relative ${horizontal ? 'h-32' : 'h-40'} bg-gradient-to-br from-amber-900/20 to-orange-900/20`}>
+          {bestThumbnail && (
+            <img
+              src={bestThumbnail}
+              alt={dish.name}
+              className="w-full h-full object-cover"
+            />
+          )}
+          {/* Stacked creator avatars — bottom-right overlay */}
+          {creatorCount > 0 && (
+            <div className="absolute bottom-2 right-2 flex -space-x-2">
+              {creators.slice(0, 3).map((creator) => (
+                <div
+                  key={creator.id}
+                  className="w-7 h-7 rounded-full border-2 border-surface-card overflow-hidden bg-surface-card shadow-sm"
+                >
+                  {creator.avatar_url ? (
+                    <img
+                      src={creator.avatar_url}
+                      alt={creator.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-text-primary bg-accent-primary/30">
+                      {creator.display_name[0]}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {creatorCount > 3 && (
+                <div className="w-7 h-7 rounded-full border-2 border-surface-card bg-surface-card shadow-sm flex items-center justify-center text-xs font-medium text-text-secondary">
+                  +{creatorCount - 3}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Card body */}
+        <div className="p-3">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-text-primary text-sm line-clamp-1">{dish.name}</h3>
+            {dish.price > 0 && (
+              <span className="text-sm font-semibold text-text-primary flex-shrink-0">${dish.price}</span>
+            )}
+          </div>
+          {creatorCount > 0 && (
+            <p className="text-xs text-accent-primary mt-1">
+              Featured by {creatorCount} creator{creatorCount !== 1 ? 's' : ''}
+            </p>
+          )}
+          {!horizontal && dish.description && (
+            <p className="text-xs text-text-secondary mt-1 line-clamp-2">{dish.description}</p>
+          )}
+          {/* Expand indicator */}
+          {contentItems.length > 0 && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-text-secondary">
+              <svg
+                className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              <span>{contentItems.length} reel{contentItems.length !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Dish Mini-Feed ─── */
+
+function DishMiniFeed({ contentItems }: { contentItems: ContentWithRelations[] }) {
+  return (
+    <div className="mt-2 space-y-2">
+      {contentItems.map((item) => (
+        <Link
+          key={item.id}
+          href={`/content/${item.id}`}
+          className="flex items-center gap-3 p-2 rounded-lg bg-surface-card border border-surface-light/10 hover:border-surface-light/20 transition-colors"
+        >
+          {/* Thumbnail */}
+          <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-surface-card">
+            <img
+              src={item.thumbnail_url || item.media_url}
+              alt={item.caption || ''}
+              className="w-full h-full object-cover"
+            />
+            {item.content_type === 'video' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Creator info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full overflow-hidden bg-surface-card flex-shrink-0">
+                {item.creator.avatar_url ? (
+                  <img
+                    src={item.creator.avatar_url}
+                    alt={item.creator.display_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-text-primary bg-accent-primary/30">
+                    {item.creator.display_name[0]}
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-medium text-text-primary truncate">
+                @{item.creator.instagram_handle || item.creator.slug}
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{item.caption}</p>
+            <p className="text-xs text-text-secondary/60 mt-0.5">
+              {new Date(item.publish_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+
+          {/* Arrow */}
+          <svg className="w-4 h-4 text-text-secondary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      ))}
     </div>
   )
 }
