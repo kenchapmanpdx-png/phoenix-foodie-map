@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS creators (
   rate_range_high INTEGER DEFAULT 0,
   is_founding_creator BOOLEAN DEFAULT FALSE,
   is_active BOOLEAN DEFAULT TRUE,
-  platform_fee_rate DECIMAL(5, 2) DEFAULT 15.00,
+  platform_fee_rate DECIMAL(5, 2) DEFAULT 5.00,
   content_rights_status VARCHAR(50) DEFAULT 'standard',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -198,6 +198,7 @@ ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE creators ENABLE ROW LEVEL SECURITY;
 ALTER TABLE content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dishes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE content_dishes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
@@ -216,6 +217,10 @@ CREATE POLICY "content_public_read" ON content
 
 -- Allow public read access to dishes
 CREATE POLICY "dishes_public_read" ON dishes
+  FOR SELECT USING (TRUE);
+
+-- Allow public read access to content-dish junctions
+CREATE POLICY "content_dishes_public_read" ON content_dishes
   FOR SELECT USING (TRUE);
 
 -- Allow users to read their own data

@@ -35,23 +35,6 @@ export function isOpenNow(hours: Record<string, Array<{ open: string; close: str
   })
 }
 
-export function buildUTMUrl(
-  baseUrl: string,
-  restaurant_slug: string,
-  content_id: string,
-  creator_slug: string
-): string {
-  const url = new URL(baseUrl)
-
-  url.searchParams.set('utm_source', 'phoenix-foodie-map')
-  url.searchParams.set('utm_medium', 'organic')
-  url.searchParams.set('utm_campaign', restaurant_slug)
-  url.searchParams.set('utm_content', content_id)
-  url.searchParams.set('utm_term', creator_slug)
-
-  return url.toString()
-}
-
 export function getTimeOfDay(): 'morning' | 'lunch' | 'afternoon' | 'dinner' | 'late_night' {
   const hour = new Date().getHours()
 

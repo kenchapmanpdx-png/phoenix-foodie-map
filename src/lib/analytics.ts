@@ -1,6 +1,7 @@
 import { AnalyticsEvent } from '@/types'
+import { supabase } from './supabase'
 
-// MVP: In-memory event store. In production, events would be persisted to Supabase.
+// In-memory cache for client-side reads (dashboard components)
 let eventStore: AnalyticsEvent[] = []
 
 export type EventType =
@@ -48,7 +49,7 @@ export interface EventMetrics {
 
 /**
  * Track a user action/event
- * For MVP: stores in memory. In production, would insert into Supabase events table.
+ * Persists to Supabase events table and keeps local cache for in-session reads.
  */
 export function trackEvent(params: TrackEventParams): AnalyticsEvent {
   const event: AnalyticsEvent = {
@@ -67,22 +68,32 @@ export function trackEvent(params: TrackEventParams): AnalyticsEvent {
     created_at: new Date().toISOString(),
   }
 
-  // MVP: Store in memory
+  // Local cache for in-session dashboard reads
   eventStore.push(event)
 
-  // TODO: In production, insert into Supabase:
-  // const { data, error } = await supabase
-  //   .from('events')
-  //   .insert([event])
-  // if (error) console.error('Failed to track event:', error)
-
-  // Log outbound link events with UTM params
-  if (params.metadata?.utm_params) {
-    console.debug('[Analytics] Outbound link:', {
-      event_type: params.event_type,
-      utm_params: params.metadata.utm_params,
-    })
+  // Persist to Supabase (fire-and-forget to avoid blocking UI)
+  const dbEvent: Record<string, unknown> = {
+    id: event.id,
+    user_id: event.user_id,
+    event_type: event.event_type,
+    source_screen: event.source_screen,
+    utm_source: event.utm_source || null,
+    utm_medium: event.utm_medium || null,
+    utm_campaign: event.utm_campaign || null,
+    utm_content: event.utm_content || null,
+    utm_term: event.utm_term || null,
   }
+  // Only include FK references if non-empty (Supabase FK constraint rejects empty strings)
+  if (event.content_id) dbEvent.content_id = event.content_id
+  if (event.restaurant_id) dbEvent.restaurant_id = event.restaurant_id
+  if (event.creator_id) dbEvent.creator_id = event.creator_id
+
+  supabase
+    .from('events')
+    .insert([dbEvent])
+    .then(({ error }) => {
+      if (error) console.error('[Analytics] Failed to persist event:', error)
+    })
 
   return event
 }

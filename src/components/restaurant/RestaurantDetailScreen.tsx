@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Restaurant } from '@/types'
 import { useUserStore } from '@/store/user'
-import { buildUTMUrl, isOpenNow } from '@/lib/utils'
+import { isOpenNow } from '@/lib/utils'
+import { buildOutboundUrl } from '@/lib/utm'
 import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import { useDishesByRestaurant } from '@/hooks/useSupabaseData'
 // Icons are inlined below
@@ -26,7 +27,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
   const priceDisplay = '$ '.repeat(restaurant.price_range)
 
   const getTodayHours = () => {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     const today = dayNames[new Date().getDay()]
     return restaurant.hours[today] || []
   }
@@ -40,7 +41,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   const handleBooking = () => {
     if (restaurant.booking_url) {
-      const url = buildUTMUrl(
+      const url = buildOutboundUrl(
         restaurant.booking_url,
         restaurant.slug,
         '',
@@ -52,7 +53,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   const handleDelivery = () => {
     if (restaurant.delivery_url) {
-      const url = buildUTMUrl(
+      const url = buildOutboundUrl(
         restaurant.delivery_url,
         restaurant.slug,
         '',
@@ -63,7 +64,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
   }
 
   const handleDirections = () => {
-    const url = buildUTMUrl(
+    const url = buildOutboundUrl(
       `https://www.google.com/maps/search/${encodeURIComponent(restaurant.address)}`,
       restaurant.slug,
       '',
@@ -74,7 +75,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   const handleViewMenu = () => {
     if (restaurant.menu_url) {
-      const url = buildUTMUrl(
+      const url = buildOutboundUrl(
         restaurant.menu_url,
         restaurant.slug,
         '',
@@ -197,7 +198,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
                 <div className="mt-3 space-y-1 text-xs text-text-secondary">
                   {Object.entries(restaurant.hours).map(([day, periods]) => (
                     <div key={day} className="flex justify-between">
-                      <span className="font-medium">{day}:</span>
+                      <span className="font-medium capitalize">{day}:</span>
                       <span>
                         {!periods || periods.length === 0
                           ? 'Closed'

@@ -3,19 +3,21 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { ContentWithRelations } from '@/types'
+import { useUserStore } from '@/store/user'
 
 interface VideoCardProps {
   content: ContentWithRelations
 }
 
 export default function VideoCard({ content }: VideoCardProps) {
-  const [isSaved, setIsSaved] = useState(false)
+  const { toggleSaveContent, savedContentIds } = useUserStore()
+  const isSaved = savedContentIds.includes(content.id)
   const [showPlayButton, setShowPlayButton] = useState(true)
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsSaved(!isSaved)
+    toggleSaveContent(content.id)
     const button = e.currentTarget as HTMLElement
     button.classList.add('save-bounce')
     setTimeout(() => button.classList.remove('save-bounce'), 600)
@@ -152,12 +154,14 @@ export default function VideoCard({ content }: VideoCardProps) {
 
         {/* Bottom overlay: Restaurant info + distance */}
         <div className="absolute bottom-0 left-0 right-0 p-4 z-5 flex flex-col gap-3">
-          {/* Sponsorship label if applicable */}
+          {/* FTC disclosure label — prominent, top of overlay */}
           {content.sponsorship_status !== 'organic' && (
-            <div className="text-xs font-bold text-[var(--color-accent-primary)] uppercase tracking-wider">
-              {content.sponsorship_status === 'comped' && 'Comped'}
-              {content.sponsorship_status === 'sponsored' && 'Sponsored'}
-              {content.sponsorship_status === 'platform_booked' && 'Platform Booked'}
+            <div className="inline-flex items-center gap-1 w-fit px-2.5 py-1 bg-black/60 backdrop-blur-sm rounded-full border border-white/20">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                {content.sponsorship_status === 'comped' && 'Gifted'}
+                {content.sponsorship_status === 'sponsored' && 'Sponsored'}
+                {content.sponsorship_status === 'platform_booked' && 'Sponsored'}
+              </span>
             </div>
           )}
 

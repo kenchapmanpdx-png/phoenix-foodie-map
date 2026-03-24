@@ -99,10 +99,12 @@ export default function ContentCard({ content, size, onClick }: ContentCardProps
             {content.restaurant.name}
           </div>
 
-          {/* Sponsorship label if applicable */}
+          {/* FTC disclosure label */}
           {content.sponsorship_status !== 'organic' && (
-            <div className="text-xs font-semibold text-[var(--color-accent-primary)] uppercase tracking-wider">
-              {content.sponsorship_status === 'comped' ? 'Comped' : 'Sponsored'}
+            <div className="inline-flex items-center w-fit px-2 py-0.5 bg-black/60 backdrop-blur-sm rounded-full border border-white/20">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                {content.sponsorship_status === 'comped' ? 'Gifted' : 'Sponsored'}
+              </span>
             </div>
           )}
         </div>
