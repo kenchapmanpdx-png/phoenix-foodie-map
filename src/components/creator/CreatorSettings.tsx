@@ -1,12 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { SEED_CREATORS } from '@/lib/seed-data'
+import { useCreators } from '@/hooks/useSupabaseData'
 import { CUISINE_TYPES, NEIGHBORHOODS } from '@/lib/constants'
 import type { CuisineType } from '@/types'
 
 export default function CreatorSettings() {
-  const creator = SEED_CREATORS[0]
+  const { creators, loading } = useCreators()
+  const creator = creators[0]
+
+  if (!creator) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
 
   const [formData, setFormData] = useState({
     displayName: creator.display_name,

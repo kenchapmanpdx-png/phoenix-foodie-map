@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { SEED_RESTAURANTS, SEED_CONTENT, SEED_CREATORS } from '@/lib/seed-data'
+import { useRestaurants, useContent, useCreators } from '@/hooks/useSupabaseData'
 import type { Creator } from '@/types'
 
 type TimePeriod = '7d' | '30d' | '90d'
@@ -18,16 +18,24 @@ interface CreatorPerformance {
 }
 
 export default function RestaurantAnalytics() {
-  const restaurant = SEED_RESTAURANTS[0]
+  const { restaurants, loading: restaurantsLoading } = useRestaurants()
+  const { content: allContent, loading: contentLoading } = useContent()
+  const { creators: allCreators, loading: creatorsLoading } = useCreators()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('30d')
 
+  const restaurant = restaurants[0]
+
+  if (!restaurant) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
+
   // Filter content for this restaurant
-  const restaurantContent = SEED_CONTENT.filter(
+  const restaurantContent = allContent.filter(
     (c) => c.restaurant_id === restaurant.id
   )
 
   // Create map of creators for easy lookup
-  const creatorMap = new Map(SEED_CREATORS.map((c) => [c.id, c]))
+  const creatorMap = new Map(allCreators.map((c) => [c.id, c]))
 
   // Calculate metrics
   const totalViews = restaurantContent.reduce((sum, c) => sum + c.view_count, 0)

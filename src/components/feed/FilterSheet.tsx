@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFiltersStore } from '@/store/filters'
 import { CUISINE_TYPES, VIBE_TAGS, NEIGHBORHOODS } from '@/lib/constants'
-import { SEED_CONTENT_WITH_RELATIONS } from '@/lib/seed-data'
+import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import type { CuisineType, VibeTag } from '@/types'
 
 interface FilterSheetProps {
@@ -15,12 +15,13 @@ interface FilterSheetProps {
 export default function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
   const router = useRouter()
   const { activeFilters, setCuisines, setVibes, setAreas, toggleOpenNow } = useFiltersStore()
+  const { content: allContent, loading } = useContentWithRelations()
   const [resultCount, setResultCount] = useState(0)
   const [startY, setStartY] = useState(0)
 
   // Calculate result count based on active filters
   useEffect(() => {
-    let filtered = SEED_CONTENT_WITH_RELATIONS
+    let filtered = allContent
 
     if (activeFilters.cuisines.length > 0) {
       filtered = filtered.filter((content) =>
@@ -35,7 +36,7 @@ export default function FilterSheet({ isOpen, onClose }: FilterSheetProps) {
     }
 
     setResultCount(filtered.length)
-  }, [activeFilters])
+  }, [activeFilters, allContent])
 
   const handleCuisineChange = (cuisine: CuisineType) => {
     const updated = activeFilters.cuisines.includes(cuisine)

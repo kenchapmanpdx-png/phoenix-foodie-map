@@ -1,30 +1,8 @@
-// Cuisine types - MVP 10 cuisines
-export type CuisineType =
-  | 'Italian'
-  | 'Japanese'
-  | 'Mexican'
-  | 'Thai'
-  | 'Indian'
-  | 'Chinese'
-  | 'Vietnamese'
-  | 'Korean'
-  | 'Mediterranean'
-  | 'American';
+// Cuisine types - from Supabase DB
+export type CuisineType = string
 
-// Vibe tags - 12 vibes
-export type VibeTag =
-  | 'casual'
-  | 'fine_dining'
-  | 'trendy'
-  | 'cozy'
-  | 'romantic'
-  | 'social'
-  | 'healthy'
-  | 'comfort_food'
-  | 'upscale'
-  | 'fast_casual'
-  | 'family_friendly'
-  | 'date_night';
+// Vibe tags - from Supabase DB
+export type VibeTag = string
 
 // Neighborhood type
 export type Neighborhood = string;

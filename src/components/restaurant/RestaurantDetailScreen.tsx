@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Restaurant } from '@/types'
-import { SEED_CONTENT_WITH_RELATIONS, SEED_DISHES } from '@/lib/seed-data'
 import { useUserStore } from '@/store/user'
 import { buildUTMUrl, isOpenNow } from '@/lib/utils'
+import { useContentWithRelations } from '@/hooks/useSupabaseData'
+import { useDishesByRestaurant } from '@/hooks/useSupabaseData'
 // Icons are inlined below
 
 interface Props {
@@ -16,12 +17,11 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
   const [expandHours, setExpandHours] = useState(false)
   const { toggleSaveRestaurant, savedRestaurantIds } = useUserStore()
   const isSaved = savedRestaurantIds.includes(restaurant.id)
+  const { content: allContent, loading: contentLoading } = useContentWithRelations()
+  const { dishes, loading: dishesLoading } = useDishesByRestaurant(restaurant.id)
 
   // Get all content for this restaurant
-  const content = SEED_CONTENT_WITH_RELATIONS.filter((c) => c.restaurant_id === restaurant.id)
-
-  // Get all dishes for this restaurant
-  const dishes = SEED_DISHES.filter((d) => d.restaurant_id === restaurant.id)
+  const content = allContent.filter((c) => c.restaurant_id === restaurant.id)
 
   const priceDisplay = '$ '.repeat(restaurant.price_range)
 

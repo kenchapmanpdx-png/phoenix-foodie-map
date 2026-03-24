@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { SEED_CREATORS } from '@/lib/seed-data'
+import { useCreators } from '@/hooks/useSupabaseData'
 
 // Mock activity data
 const MOCK_ACTIVITY = [
@@ -74,8 +74,13 @@ function StatCard({ label, value, icon, trend }: StatCardProps) {
 }
 
 export default function CreatorDashboard() {
+  const { creators, loading } = useCreators()
   // Use the first creator as logged-in user
-  const currentCreator = SEED_CREATORS[0]
+  const currentCreator = creators[0]
+
+  if (!currentCreator) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
 
   return (
     <div className="space-y-8">

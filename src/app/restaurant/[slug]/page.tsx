@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { SEED_RESTAURANTS } from '@/lib/seed-data'
+import { fetchRestaurantBySlug } from '@/lib/queries'
 import RestaurantDetailScreen from '@/components/restaurant/RestaurantDetailScreen'
 
 interface Props {
@@ -8,8 +8,8 @@ interface Props {
   }
 }
 
-export default function RestaurantDetailPage({ params }: Props) {
-  const restaurant = SEED_RESTAURANTS.find((r) => r.slug === params.slug)
+export default async function RestaurantDetailPage({ params }: Props) {
+  const restaurant = await fetchRestaurantBySlug(params.slug)
 
   if (!restaurant) {
     notFound()

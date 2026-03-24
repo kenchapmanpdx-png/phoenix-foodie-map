@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { SEED_RESTAURANTS } from '@/lib/seed-data'
+import { useRestaurants } from '@/hooks/useSupabaseData'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
 import type { SponsorshipStatus, CuisineType, VibeTag } from '@/types'
 
 export default function ContentUpload() {
+  const { restaurants, loading } = useRestaurants()
   const [contentType, setContentType] = useState<'video' | 'photo'>('photo')
   const [restaurantId, setRestaurantId] = useState('')
   const [dishNames, setDishNames] = useState<string[]>([''])
@@ -50,7 +51,7 @@ export default function ContentUpload() {
 
   const isFormValid = restaurantId && cuisineTags.length > 0 && sponsorshipStatus
 
-  const selectedRestaurant = SEED_RESTAURANTS.find((r) => r.id === restaurantId)
+  const selectedRestaurant = restaurants.find((r) => r.id === restaurantId)
 
   return (
     <div className="max-w-2xl">
@@ -109,7 +110,7 @@ export default function ContentUpload() {
               className="w-full px-4 py-3 bg-surface-card border border-surface-light/10 rounded-lg text-text-primary"
             >
               <option value="">Select a restaurant...</option>
-              {SEED_RESTAURANTS.map((restaurant) => (
+              {restaurants.map((restaurant) => (
                 <option key={restaurant.id} value={restaurant.id}>
                   {restaurant.name} — {restaurant.neighborhood}
                 </option>

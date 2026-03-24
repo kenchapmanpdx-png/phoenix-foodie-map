@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { useFiltersStore } from '@/store/filters'
-import { SEED_CONTENT_WITH_RELATIONS } from '@/lib/seed-data'
+import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import type { CuisineType, VibeTag, ContentWithRelations } from '@/types'
 import FilterBar from './FilterBar'
 import FeedCard from './FeedCard'
@@ -16,6 +16,7 @@ interface FeedScreenProps {
 
 export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenProps) {
   const { activeFilters, setCuisines, setVibes } = useFiltersStore()
+  const { content: allContent, loading } = useContentWithRelations()
 
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
 
   // Filter and sort content
   const filteredContent = useMemo(() => {
-    let filtered: ContentWithRelations[] = SEED_CONTENT_WITH_RELATIONS
+    let filtered: ContentWithRelations[] = allContent
 
     if (activeFilters.cuisines.length > 0) {
       filtered = filtered.filter((content) =>

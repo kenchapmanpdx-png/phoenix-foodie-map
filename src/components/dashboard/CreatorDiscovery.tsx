@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { SEED_CREATORS } from '@/lib/seed-data'
+import { useCreators } from '@/hooks/useSupabaseData'
 import CreatorBookingForm from './CreatorBookingForm'
 import type { Creator, CuisineType, Neighborhood } from '@/types'
 import { CUISINE_TYPES, NEIGHBORHOODS } from '@/lib/constants'
@@ -16,6 +16,8 @@ const followerTierMap: Record<string, TierFilter> = {
 }
 
 export default function CreatorDiscovery() {
+  const { creators: allCreators, loading } = useCreators()
+
   // State
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | 'all'>('all')
   const [selectedArea, setSelectedArea] = useState<Neighborhood | 'all'>('all')
@@ -26,7 +28,7 @@ export default function CreatorDiscovery() {
 
   // Filter creators
   const filtered = useMemo(() => {
-    return SEED_CREATORS.filter((creator) => {
+    return allCreators.filter((creator) => {
       // Cuisine filter
       if (selectedCuisine !== 'all' && !creator.specialties.includes(selectedCuisine)) {
         return false

@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
-import { SEED_CONTENT_WITH_RELATIONS } from '@/lib/seed-data'
+import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import ContentCard from '@/components/shared/ContentCard'
 
 export default function HomeScreen() {
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null)
   const vibeScrollRef = useRef<HTMLDivElement>(null)
+  const { content: allContent, loading } = useContentWithRelations()
 
   // Warm gradient combinations for cuisine cards
   const cuisineGradients = [
@@ -38,8 +39,8 @@ export default function HomeScreen() {
     American: '🍔',
   }
 
-  // Get featured content (first 5 from seed data)
-  const featuredContent = SEED_CONTENT_WITH_RELATIONS.slice(0, 5)
+  // Get featured content (first 5 from DB)
+  const featuredContent = allContent.slice(0, 5)
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">

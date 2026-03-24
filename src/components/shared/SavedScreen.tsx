@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useUserStore } from '@/store/user'
-import { SEED_CONTENT_WITH_RELATIONS, SEED_RESTAURANTS } from '@/lib/seed-data'
+import { useContentWithRelations, useRestaurants } from '@/hooks/useSupabaseData'
 import type { ContentWithRelations, Restaurant } from '@/types'
 
 interface Collection {
@@ -23,14 +23,16 @@ export default function SavedScreen() {
   const [activeTab, setActiveTab] = useState<'content' | 'restaurants'>('content')
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
   const { savedContentIds, savedRestaurantIds } = useUserStore()
+  const { content: allContent, loading: contentLoading } = useContentWithRelations()
+  const { restaurants: allRestaurants, loading: restaurantsLoading } = useRestaurants()
 
   // Get saved content
-  const savedContent = SEED_CONTENT_WITH_RELATIONS.filter((c) => savedContentIds.includes(c.id)).sort(
+  const savedContent = allContent.filter((c) => savedContentIds.includes(c.id)).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 
   // Get saved restaurants
-  const savedRestaurants = SEED_RESTAURANTS.filter((r) => savedRestaurantIds.includes(r.id))
+  const savedRestaurants = allRestaurants.filter((r) => savedRestaurantIds.includes(r.id))
 
   const hasNoSavedContent = savedContent.length === 0
   const hasNoSavedRestaurants = savedRestaurants.length === 0

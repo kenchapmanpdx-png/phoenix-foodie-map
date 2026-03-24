@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { SEED_CONTENT_WITH_RELATIONS } from '@/lib/seed-data'
+import { fetchContentWithRelationsById } from '@/lib/queries'
 import ContentDetailScreen from '@/components/feed/ContentDetailScreen'
 
 interface Props {
@@ -8,8 +8,8 @@ interface Props {
   }
 }
 
-export default function ContentDetailPage({ params }: Props) {
-  const content = SEED_CONTENT_WITH_RELATIONS.find((c) => c.id === params.id)
+export default async function ContentDetailPage({ params }: Props) {
+  const content = await fetchContentWithRelationsById(params.id)
 
   if (!content) {
     notFound()

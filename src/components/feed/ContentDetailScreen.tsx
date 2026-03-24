@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ContentWithRelations, Dish } from '@/types'
-import { SEED_CONTENT_WITH_RELATIONS, SEED_DISHES } from '@/lib/seed-data'
 import { useUserStore } from '@/store/user'
+import { useContentWithRelations } from '@/hooks/useSupabaseData'
+import { useDishesByRestaurant } from '@/hooks/useSupabaseData'
 // Icons are inlined below
 
 interface Props {
@@ -15,6 +16,8 @@ export default function ContentDetailScreen({ content }: Props) {
   const [showFullCaption, setShowFullCaption] = useState(false)
   const { toggleSaveContent, savedContentIds } = useUserStore()
   const [isSaving, setIsSaving] = useState(false)
+  const { content: allContent, loading: contentLoading } = useContentWithRelations()
+  const { dishes, loading: dishesLoading } = useDishesByRestaurant(content.restaurant_id)
 
   const isSaved = savedContentIds.includes(content.id)
 
@@ -25,23 +28,20 @@ export default function ContentDetailScreen({ content }: Props) {
   }
 
   // Get more content from this creator
-  const moreFromCreator = SEED_CONTENT_WITH_RELATIONS.filter(
+  const moreFromCreator = allContent.filter(
     (c) => c.creator_id === content.creator_id && c.id !== content.id
   ).slice(0, 4)
 
   // Get more content from this restaurant
-  const moreFromRestaurant = SEED_CONTENT_WITH_RELATIONS.filter(
+  const moreFromRestaurant = allContent.filter(
     (c) => c.restaurant_id === content.restaurant_id && c.id !== content.id
   ).slice(0, 4)
 
   // Get similar vibes (matching at least one vibe tag)
-  const similarVibes = SEED_CONTENT_WITH_RELATIONS.filter((c) => {
+  const similarVibes = allContent.filter((c) => {
     if (c.id === content.id) return false
     return c.vibe_tags.some((tag) => content.vibe_tags.includes(tag))
   }).slice(0, 4)
-
-  // Get dishes for this restaurant
-  const dishes = SEED_DISHES.filter((d) => d.restaurant_id === content.restaurant_id)
 
   const handleShare = async () => {
     if (navigator.share) {

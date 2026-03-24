@@ -1,6 +1,6 @@
 'use client'
 
-import { SEED_RESTAURANTS, SEED_CONTENT } from '@/lib/seed-data'
+import { useRestaurants, useContent } from '@/hooks/useSupabaseData'
 import Link from 'next/link'
 
 const TrendArrowUp = () => (
@@ -23,11 +23,18 @@ interface MetricCard {
 }
 
 export default function DashboardOverview() {
+  const { restaurants, loading: restaurantsLoading } = useRestaurants()
+  const { content: allContent, loading: contentLoading } = useContent()
+
   // Use first restaurant as the logged-in restaurant
-  const restaurant = SEED_RESTAURANTS[0]
+  const restaurant = restaurants[0]
+
+  if (!restaurant) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
 
   // Filter content for this restaurant
-  const restaurantContent = SEED_CONTENT.filter(
+  const restaurantContent = allContent.filter(
     (c) => c.restaurant_id === restaurant.id
   )
 
@@ -113,7 +120,6 @@ export default function DashboardOverview() {
         <div className="space-y-3">
           {recentContent.length > 0 ? (
             recentContent.map((content) => {
-              const creator = SEED_RESTAURANTS[0] // Simplified - in real app would be joined
               return (
                 <div
                   key={content.id}

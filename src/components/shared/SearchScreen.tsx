@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { SEED_CONTENT_WITH_RELATIONS, SEED_RESTAURANTS, SEED_CREATORS } from '@/lib/seed-data'
+import { useContentWithRelations, useRestaurants, useCreators } from '@/hooks/useSupabaseData'
 import type { ContentWithRelations, Restaurant, Creator } from '@/types'
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('')
   const [hasTyped, setHasTyped] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { content: allContent, loading: contentLoading } = useContentWithRelations()
+  const { restaurants: allRestaurants, loading: restaurantsLoading } = useRestaurants()
+  const { creators: allCreators, loading: creatorsLoading } = useCreators()
 
   // Auto-focus on mount
   useEffect(() => {
@@ -31,7 +34,7 @@ export default function SearchScreen() {
   const filterDishes = (q: string): Array<{ dish: any; restaurant: Restaurant }> => {
     if (!q.trim()) return []
     const lowerQ = q.toLowerCase()
-    const results = SEED_CONTENT_WITH_RELATIONS
+    const results = allContent
       .filter(
         (content) =>
           content.restaurant.name.toLowerCase().includes(lowerQ) ||
@@ -48,7 +51,7 @@ export default function SearchScreen() {
   const filterRestaurants = (q: string): Restaurant[] => {
     if (!q.trim()) return []
     const lowerQ = q.toLowerCase()
-    return SEED_RESTAURANTS.filter(
+    return allRestaurants.filter(
       (r) =>
         r.name.toLowerCase().includes(lowerQ) ||
         r.cuisine_types.some((c) => c.toLowerCase().includes(lowerQ)) ||
@@ -59,7 +62,7 @@ export default function SearchScreen() {
   const filterCreators = (q: string): Creator[] => {
     if (!q.trim()) return []
     const lowerQ = q.toLowerCase()
-    return SEED_CREATORS.filter(
+    return allCreators.filter(
       (c) =>
         c.display_name.toLowerCase().includes(lowerQ) ||
         c.instagram_handle.toLowerCase().includes(lowerQ)
@@ -71,12 +74,12 @@ export default function SearchScreen() {
   const creators = filterCreators(query)
 
   // Get trending dishes (most saved)
-  const trendingDishes = SEED_CONTENT_WITH_RELATIONS.sort(
+  const trendingDishes = allContent.sort(
     (a, b) => b.save_count - a.save_count
   ).slice(0, 4)
 
   // Get recently added restaurants (by created_at desc)
-  const newRestaurants = SEED_RESTAURANTS.sort(
+  const newRestaurants = allRestaurants.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   ).slice(0, 4)
 

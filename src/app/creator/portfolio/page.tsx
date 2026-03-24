@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { SEED_CREATORS } from '@/lib/seed-data'
+import { useCreators } from '@/hooks/useSupabaseData'
 
 // Mock content for portfolio
 const MOCK_PORTFOLIO_CONTENT = [
@@ -57,7 +57,13 @@ const FEATURED_RESTAURANTS = [
 ]
 
 export default function PortfolioPage() {
-  const creator = SEED_CREATORS[0]
+  const { creators, loading } = useCreators()
+  const creator = creators[0]
+
+  if (!creator) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
+
   const totalFollowers = creator.instagram_followers + creator.tiktok_followers
 
   return (

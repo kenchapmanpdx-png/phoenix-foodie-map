@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { SEED_RESTAURANTS, SEED_CONTENT, SEED_CREATORS } from '@/lib/seed-data'
+import { useRestaurants, useContent, useCreators } from '@/hooks/useSupabaseData'
 import type { Content, Creator } from '@/types'
 
 type SortBy = 'newest' | 'views' | 'saves' | 'taps'
@@ -32,15 +32,23 @@ const getRightsLabel = (
 }
 
 export default function ContentLibrary() {
-  const restaurant = SEED_RESTAURANTS[0]
+  const { restaurants, loading: restaurantsLoading } = useRestaurants()
+  const { content: allContent, loading: contentLoading } = useContent()
+  const { creators: allCreators, loading: creatorsLoading } = useCreators()
+
+  const restaurant = restaurants[0]
+
+  if (!restaurant) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
 
   // Filter content for this restaurant
-  const restaurantContent = SEED_CONTENT.filter(
+  const restaurantContent = allContent.filter(
     (c) => c.restaurant_id === restaurant.id
   )
 
   // Create map of creators for easy lookup
-  const creatorMap = new Map(SEED_CREATORS.map((c) => [c.id, c]))
+  const creatorMap = new Map(allCreators.map((c) => [c.id, c]))
 
   // State
   const [sortBy, setSortBy] = useState<SortBy>('newest')

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SEED_RESTAURANTS, SEED_CREATORS } from '@/lib/seed-data'
+import { useRestaurants, useCreators } from '@/hooks/useSupabaseData'
 import { CUISINE_TYPES, NEIGHBORHOODS } from '@/lib/constants'
 import type { CuisineType, Neighborhood } from '@/types'
 
@@ -14,7 +14,13 @@ const SaveIcon = () => (
 )
 
 export default function RestaurantSettings() {
-  const restaurant = SEED_RESTAURANTS[0]
+  const { restaurants, loading: restaurantsLoading } = useRestaurants()
+  const { creators, loading: creatorsLoading } = useCreators()
+  const restaurant = restaurants[0]
+
+  if (!restaurant) {
+    return <div className="text-[var(--color-text-secondary)]">Loading...</div>
+  }
 
   // Form state
   const [formData, setFormData] = useState({

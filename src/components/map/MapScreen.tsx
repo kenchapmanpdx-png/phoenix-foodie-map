@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFiltersStore } from '@/store/filters'
-import { SEED_RESTAURANTS } from '@/lib/seed-data'
-import { CUISINE_TYPES, VIBE_TAGS, NEIGHBORHOODS, DEFAULT_CENTER } from '@/lib/constants'
+import { useRestaurants } from '@/hooks/useSupabaseData'
+import { DEFAULT_CENTER } from '@/lib/constants'
 import type { CuisineType, VibeTag, Restaurant } from '@/types'
 import FilterBar from '../feed/FilterBar'
 import dynamic from 'next/dynamic'
@@ -21,6 +21,7 @@ interface MapScreenProps {
 export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProps) {
   const router = useRouter()
   const { activeFilters, setCuisines, setVibes } = useFiltersStore()
+  const { restaurants: allRestaurants, loading } = useRestaurants()
   const [isListView, setIsListView] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [sortBy, setSortBy] = useState<'distance' | 'trending'>('distance')
@@ -39,7 +40,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
 
   // Filter restaurants
   const filteredRestaurants = useMemo(() => {
-    let filtered: Restaurant[] = SEED_RESTAURANTS
+    let filtered: Restaurant[] = allRestaurants
 
     if (activeFilters.cuisines.length > 0) {
       filtered = filtered.filter((restaurant) =>

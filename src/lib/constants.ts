@@ -1,48 +1,43 @@
-import type { CuisineType, VibeTag } from '@/types'
-
-export const CUISINE_TYPES: Array<{ label: string; value: CuisineType; imagePath: string }> = [
-  { label: 'Italian', value: 'Italian', imagePath: '/images/cuisines/italian.jpg' },
-  { label: 'Japanese', value: 'Japanese', imagePath: '/images/cuisines/japanese.jpg' },
+export const CUISINE_TYPES: Array<{ label: string; value: string; imagePath: string }> = [
   { label: 'Mexican', value: 'Mexican', imagePath: '/images/cuisines/mexican.jpg' },
-  { label: 'Thai', value: 'Thai', imagePath: '/images/cuisines/thai.jpg' },
-  { label: 'Indian', value: 'Indian', imagePath: '/images/cuisines/indian.jpg' },
-  { label: 'Chinese', value: 'Chinese', imagePath: '/images/cuisines/chinese.jpg' },
-  { label: 'Vietnamese', value: 'Vietnamese', imagePath: '/images/cuisines/vietnamese.jpg' },
-  { label: 'Korean', value: 'Korean', imagePath: '/images/cuisines/korean.jpg' },
-  { label: 'Mediterranean', value: 'Mediterranean', imagePath: '/images/cuisines/mediterranean.jpg' },
   { label: 'American', value: 'American', imagePath: '/images/cuisines/american.jpg' },
+  { label: 'Italian', value: 'Italian', imagePath: '/images/cuisines/italian.jpg' },
+  { label: 'Asian', value: 'Asian', imagePath: '/images/cuisines/asian.jpg' },
+  { label: 'Seafood', value: 'Seafood', imagePath: '/images/cuisines/seafood.jpg' },
+  { label: 'Pizza', value: 'Pizza', imagePath: '/images/cuisines/pizza.jpg' },
+  { label: 'BBQ/Comfort', value: 'BBQ/Comfort', imagePath: '/images/cuisines/bbq.jpg' },
+  { label: 'Brunch', value: 'Brunch', imagePath: '/images/cuisines/brunch.jpg' },
+  { label: 'Healthy', value: 'Healthy', imagePath: '/images/cuisines/healthy.jpg' },
+  { label: 'Dessert/Coffee', value: 'Dessert/Coffee', imagePath: '/images/cuisines/dessert.jpg' },
 ]
 
-export const VIBE_TAGS: Array<{ label: string; value: VibeTag }> = [
-  { label: 'Casual', value: 'casual' },
-  { label: 'Fine Dining', value: 'fine_dining' },
-  { label: 'Trendy', value: 'trendy' },
-  { label: 'Cozy', value: 'cozy' },
-  { label: 'Romantic', value: 'romantic' },
-  { label: 'Social', value: 'social' },
-  { label: 'Healthy', value: 'healthy' },
-  { label: 'Comfort Food', value: 'comfort_food' },
-  { label: 'Upscale', value: 'upscale' },
-  { label: 'Fast Casual', value: 'fast_casual' },
-  { label: 'Family Friendly', value: 'family_friendly' },
-  { label: 'Date Night', value: 'date_night' },
+export const VIBE_TAGS: Array<{ label: string; value: string }> = [
+  { label: 'Date Night', value: 'Date Night' },
+  { label: 'Trendy / New', value: 'Trendy / New' },
+  { label: 'Hidden Gem', value: 'Hidden Gem' },
+  { label: 'Happy Hour', value: 'Happy Hour' },
+  { label: 'Family', value: 'Family' },
+  { label: 'Group Dinner', value: 'Group Dinner' },
+  { label: 'Patio', value: 'Patio' },
+  { label: 'Brunch', value: 'Brunch' },
+  { label: 'Late Night', value: 'Late Night' },
+  { label: 'Quick Bite', value: 'Quick Bite' },
+  { label: 'Solo-Friendly', value: 'Solo-Friendly' },
+  { label: 'Splurge-Worthy', value: 'Splurge-Worthy' },
 ]
 
 export const NEIGHBORHOODS = [
   'Downtown Phoenix',
+  'Central Phoenix',
   'Scottsdale',
+  'Old Town Scottsdale',
+  'North Scottsdale',
   'Tempe',
   'Mesa',
-  'Chandler',
   'Gilbert',
-  'Ahwatukee',
-  'Camelback',
   'Arcadia',
-  'Paradise Valley',
+  'Cave Creek',
   'Peoria',
-  'Glendale',
-  'Goodyear',
-  'Surprise',
 ]
 
 export const DEFAULT_CENTER = {
