@@ -1,0 +1,164 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import type { ContentWithRelations } from '@/types'
+
+interface FeedCardProps {
+  content: ContentWithRelations
+}
+
+export default function FeedCard({ content }: FeedCardProps) {
+  const [isSaved, setIsSaved] = useState(false)
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsSaved(!isSaved)
+    const button = e.currentTarget as HTMLElement
+    button.classList.add('save-bounce')
+    setTimeout(() => button.classList.remove('save-bounce'), 600)
+  }
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (navigator.share) {
+      navigator.share({
+        title: content.restaurant.name,
+        text: `Check out this ${content.restaurant.name} content by ${content.creator.display_name}`,
+        url: window.location.origin + `/content/${content.id}`,
+      })
+    }
+  }
+
+  // Gradient backgrounds for thumbnails (warm food-forward colors)
+  const gradients = [
+    'from-amber-900 via-orange-700 to-red-600',
+    'from-orange-800 via-yellow-600 to-amber-500',
+    'from-red-900 via-orange-600 to-yellow-500',
+    'from-yellow-900 via-amber-700 to-orange-600',
+    'from-orange-700 via-red-600 to-pink-500',
+  ]
+  const gradientIndex = content.id.charCodeAt(0) % gradients.length
+  const bgGradient = gradients[gradientIndex]
+
+  // Calculate distance (placeholder - in real app would use geolocation)
+  const distance = Math.floor(Math.random() * 8) + 1
+
+  return (
+    <Link href={`/content/${content.id}`}>
+      <div
+        className="feed-card relative w-full rounded-lg overflow-hidden bg-gradient-to-br flex flex-col cursor-pointer group"
+        style={{
+          height: 'clamp(480px, 75svh, 720px)',
+          backgroundImage: `linear-gradient(135deg, var(--color-surface-primary), #1a1a1a)`,
+        }}
+      >
+        {/* Background gradient placeholder */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${bgGradient} flex items-center justify-center`}
+        >
+          <span className="text-9xl opacity-15">🍽️</span>
+        </div>
+
+        {/* Top scrim for readability */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/50 via-black/30 to-transparent pointer-events-none" />
+
+        {/* Top left: Creator avatar + handle */}
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex-shrink-0 overflow-hidden border border-white/20">
+            {content.creator.avatar_url && (
+              <img
+                src={content.creator.avatar_url}
+                alt={content.creator.display_name}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+          <span className="text-sm font-medium text-white truncate max-w-[120px]">
+            {content.creator.display_name}
+          </span>
+        </div>
+
+        {/* Top right: Save + Share buttons */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <button
+            onClick={handleShareClick}
+            className="p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors backdrop-blur-sm"
+            aria-label="Share"
+          >
+            <svg
+              className="w-5 h-5 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+          <button
+            onClick={handleSaveClick}
+            className="p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors backdrop-blur-sm"
+            aria-label="Save"
+          >
+            <svg
+              className={`w-5 h-5 ${
+                isSaved ? 'fill-[var(--color-accent-primary)] text-[var(--color-accent-primary)]' : 'text-white'
+              }`}
+              viewBox="0 0 24 24"
+              fill={isSaved ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Bottom scrim gradient */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none" />
+
+        {/* Bottom overlay: Restaurant info + dish name + distance */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-5 flex flex-col gap-3">
+          {/* Sponsorship label if applicable */}
+          {content.sponsorship_status !== 'organic' && (
+            <div className="text-xs font-bold text-[var(--color-accent-primary)] uppercase tracking-wider">
+              {content.sponsorship_status === 'comped' && 'Comped'}
+              {content.sponsorship_status === 'sponsored' && 'Sponsored'}
+              {content.sponsorship_status === 'platform_booked' && 'Platform Booked'}
+            </div>
+          )}
+
+          {/* Restaurant name - tappable link */}
+          <Link
+            href={`/restaurant/${content.restaurant.slug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-lg font-bold text-white hover:text-[var(--color-accent-primary)] transition-colors line-clamp-2"
+          >
+            {content.restaurant.name}
+          </Link>
+
+          {/* Dish/Featured item name */}
+          <div className="text-sm text-[var(--color-text-secondary)] line-clamp-1">
+            Featured Item
+          </div>
+
+          {/* Distance badge */}
+          <div className="inline-flex items-center gap-2 w-fit px-3 py-1.5 bg-black/50 rounded-full border border-white/20 backdrop-blur-sm">
+            <svg className="w-4 h-4 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="text-xs text-white font-medium">{distance} km away</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
