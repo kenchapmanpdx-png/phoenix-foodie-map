@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import type { Restaurant } from '@/types'
 import { DEFAULT_CENTER } from '@/lib/constants'
@@ -108,6 +108,7 @@ export default function MapboxMap({
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const styleInjectedRef = useRef(false)
+  const [mapReady, setMapReady] = useState(false)
 
   // Inject CSS animations once
   useEffect(() => {
@@ -145,16 +146,20 @@ export default function MapboxMap({
 
     mapRef.current = map
 
+    map.on('load', () => {
+      setMapReady(true)
+    })
+
     return () => {
       map.remove()
       mapRef.current = null
     }
   }, [])
 
-  // Update markers when restaurants or selection changes
+  // Update markers when restaurants or selection changes, or when map becomes ready
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
 
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove())
@@ -188,7 +193,7 @@ export default function MapboxMap({
 
       markersRef.current.push(marker)
     })
-  }, [restaurants, selectedRestaurant, onPinTap])
+  }, [restaurants, selectedRestaurant, onPinTap, mapReady])
 
   return (
     <div

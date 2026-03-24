@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Restaurant } from '@/types'
 import { DEFAULT_CENTER } from '@/lib/constants'
 
@@ -31,7 +31,9 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const leafletRef = useRef<any>(null)
   const styleInjectedRef = useRef(false)
+  const [mapReady, setMapReady] = useState(false)
 
   // Inject pin animation CSS once
   useEffect(() => {
@@ -72,6 +74,8 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
     if (!mapRef.current || mapInstanceRef.current) return
 
     import('leaflet').then((L) => {
+      if (!mapRef.current) return
+
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -94,76 +98,76 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
       L.control.zoom({ position: 'bottomright' }).addTo(map)
 
       mapInstanceRef.current = map
+      leafletRef.current = L
+      setMapReady(true)
     })
 
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
+        leafletRef.current = null
       }
     }
   }, [])
 
-  // Update markers when restaurants change
+  // Update markers when restaurants change OR when map becomes ready
   useEffect(() => {
-    if (!mapInstanceRef.current) return
+    const map = mapInstanceRef.current
+    const L = leafletRef.current
+    if (!map || !L || !mapReady) return
 
-    import('leaflet').then((L) => {
-      const map = mapInstanceRef.current
+    // Clear existing markers
+    markersRef.current.forEach((m) => m.remove())
+    markersRef.current = []
 
-      // Clear existing markers
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current = []
+    restaurants.forEach((restaurant, index) => {
+      const isSelected = selectedRestaurant?.id === restaurant.id
+      const [color1, color2] = getGradientColors(restaurant.cuisine_types[0])
+      const staggerDelay = index * 40
+      const size = isSelected ? 44 : 36
 
-      restaurants.forEach((restaurant, index) => {
-        const isSelected = selectedRestaurant?.id === restaurant.id
-        const [color1, color2] = getGradientColors(restaurant.cuisine_types[0])
-        const staggerDelay = index * 40 // 40ms stagger between pins
-        const size = isSelected ? 44 : 36
+      const icon = L.divIcon({
+        className: 'custom-pin',
+        html: `<div class="leaflet-pin-enter ${isSelected ? 'leaflet-pin-selected' : ''}" style="
+          position: relative;
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, ${color1}, ${color2});
+          border: 2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.3)'};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+          cursor: pointer;
+          animation-delay: ${staggerDelay}ms;
+          transition: transform 150ms ease, box-shadow 150ms ease;
+        ">
+          <span style="
+            font-weight: 700;
+            font-size: ${isSelected ? '16px' : '14px'};
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+          ">${restaurant.name[0]}</span>
+        </div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+      })
 
-        const icon = L.divIcon({
-          className: 'custom-pin',
-          html: `<div class="leaflet-pin-enter ${isSelected ? 'leaflet-pin-selected' : ''}" style="
-            position: relative;
-            width: ${size}px;
-            height: ${size}px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, ${color1}, ${color2});
-            border: 2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.3)'};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-            cursor: pointer;
-            animation-delay: ${staggerDelay}ms;
-            transition: transform 150ms ease, box-shadow 150ms ease;
-          ">
-            <span style="
-              font-weight: 700;
-              font-size: ${isSelected ? '16px' : '14px'};
-              color: #fff;
-              text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            ">${restaurant.name[0]}</span>
-          </div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
+      const marker = L.marker([restaurant.latitude, restaurant.longitude], { icon })
+        .addTo(map)
+        .on('click', () => {
+          map.flyTo([restaurant.latitude, restaurant.longitude], 14, {
+            duration: 0.8,
+            easeLinearity: 0.25,
+          })
+          onPinTap(restaurant)
         })
 
-        const marker = L.marker([restaurant.latitude, restaurant.longitude], { icon })
-          .addTo(map)
-          .on('click', () => {
-            // Fly to pin location on tap
-            map.flyTo([restaurant.latitude, restaurant.longitude], 14, {
-              duration: 0.8,
-              easeLinearity: 0.25,
-            })
-            onPinTap(restaurant)
-          })
-
-        markersRef.current.push(marker)
-      })
+      markersRef.current.push(marker)
     })
-  }, [restaurants, selectedRestaurant, onPinTap])
+  }, [restaurants, selectedRestaurant, onPinTap, mapReady])
 
   return (
     <>
