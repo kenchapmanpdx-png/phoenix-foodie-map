@@ -89,6 +89,21 @@ export function useDishesByRestaurant(restaurantId: string) {
   return { dishes, loading }
 }
 
+export function useContentDishLinks(restaurantId: string) {
+  const [links, setLinks] = useState<Array<{ content_id: string; dish_id: string }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!restaurantId) return
+    queries.fetchContentDishLinks(restaurantId).then(data => {
+      setLinks(data)
+      setLoading(false)
+    })
+  }, [restaurantId])
+
+  return { links, loading }
+}
+
 export function useContent() {
   const [content, setContent] = useState<Content[]>([])
   const [loading, setLoading] = useState(true)

@@ -119,6 +119,21 @@ export async function fetchDishesByRestaurant(restaurantId: string): Promise<Dis
   return data || []
 }
 
+// Fetch content_dishes junctions for a restaurant's dishes
+export async function fetchContentDishLinks(restaurantId: string): Promise<Array<{ content_id: string; dish_id: string }>> {
+  // Get dish IDs for this restaurant first, then get junctions
+  const dishes = await fetchDishesByRestaurant(restaurantId)
+  if (dishes.length === 0) return []
+
+  const dishIds = dishes.map(d => d.id)
+  const { data, error } = await supabase
+    .from('content_dishes')
+    .select('content_id, dish_id')
+    .in('dish_id', dishIds)
+  if (error) { console.error('fetchContentDishLinks error:', error); return [] }
+  return data || []
+}
+
 // Composed: content with creator and restaurant joined
 export async function fetchContentWithRelations(): Promise<ContentWithRelations[]> {
   const [contentRes, creatorsRes, restaurantsRes] = await Promise.all([

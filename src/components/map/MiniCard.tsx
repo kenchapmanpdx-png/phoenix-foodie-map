@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Restaurant } from '@/types'
-import { DEFAULT_CENTER } from '@/lib/constants'
+import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
 
 interface MiniCardProps {
   restaurant: Restaurant
@@ -16,11 +16,10 @@ export default function MiniCard({ restaurant, onClose, onTap }: MiniCardProps) 
   const dragStartRef = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Calculate distance from Phoenix center
-  const distance = Math.sqrt(
-    Math.pow(restaurant.latitude - DEFAULT_CENTER.latitude, 2) +
-      Math.pow(restaurant.longitude - DEFAULT_CENTER.longitude, 2)
-  ) * 69 // Convert degrees to miles
+  const { position } = useGeolocation()
+  const distance = position
+    ? getDistanceMiles(position.latitude, position.longitude, restaurant.latitude, restaurant.longitude)
+    : null
 
   // Handle touch drag
   useEffect(() => {
@@ -177,7 +176,7 @@ export default function MiniCard({ restaurant, onClose, onTap }: MiniCardProps) 
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
                 </svg>
-                {distance.toFixed(1)} mi
+                {distance !== null ? `${distance.toFixed(1)} mi` : '...'}
               </div>
               <div className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

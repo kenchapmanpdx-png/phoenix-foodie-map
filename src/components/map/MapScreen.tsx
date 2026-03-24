@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useFiltersStore } from '@/store/filters'
 import { useRestaurants } from '@/hooks/useSupabaseData'
 import { DEFAULT_CENTER } from '@/lib/constants'
+import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
+import { isOpenNow } from '@/lib/utils'
 import type { CuisineType, VibeTag, Restaurant } from '@/types'
 import FilterBar from '../feed/FilterBar'
 import dynamic from 'next/dynamic'
@@ -22,6 +24,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
   const router = useRouter()
   const { activeFilters, setCuisines, setVibes } = useFiltersStore()
   const { restaurants: allRestaurants, loading } = useRestaurants()
+  const { position } = useGeolocation()
   const [isListView, setIsListView] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [sortBy, setSortBy] = useState<'distance' | 'trending'>('distance')
@@ -66,22 +69,21 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
       )
     }
 
+    if (activeFilters.openNow) {
+      filtered = filtered.filter((restaurant) => isOpenNow(restaurant.hours))
+    }
+
     return filtered.filter((r) => r.is_active)
   }, [activeFilters, allRestaurants])
 
   // Sort restaurants for list view
   const sortedRestaurants = useMemo(() => {
+    const refLat = position?.latitude ?? DEFAULT_CENTER.latitude
+    const refLon = position?.longitude ?? DEFAULT_CENTER.longitude
     if (sortBy === 'distance') {
       return [...filteredRestaurants].sort((a, b) => {
-        // Simple distance calculation from Phoenix center
-        const distA = Math.sqrt(
-          Math.pow(a.latitude - DEFAULT_CENTER.latitude, 2) +
-            Math.pow(a.longitude - DEFAULT_CENTER.longitude, 2)
-        )
-        const distB = Math.sqrt(
-          Math.pow(b.latitude - DEFAULT_CENTER.latitude, 2) +
-            Math.pow(b.longitude - DEFAULT_CENTER.longitude, 2)
-        )
+        const distA = getDistanceMiles(refLat, refLon, a.latitude, a.longitude)
+        const distB = getDistanceMiles(refLat, refLon, b.latitude, b.longitude)
         return distA - distB
       })
     }
@@ -89,7 +91,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
     return [...filteredRestaurants].sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
-  }, [filteredRestaurants, sortBy])
+  }, [filteredRestaurants, sortBy, position])
 
   const handlePinTap = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant)
@@ -150,12 +152,14 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
           sortBy={sortBy}
           onSortChange={setSortBy}
           onRestaurantTap={handleMiniCardTap}
+          userPosition={position}
         />
       ) : (
         <MapView
           restaurants={filteredRestaurants}
           selectedRestaurant={selectedRestaurant}
           onPinTap={handlePinTap}
+          loading={loading}
         />
       )}
 
@@ -175,10 +179,12 @@ function MapView({
   restaurants,
   selectedRestaurant,
   onPinTap,
+  loading,
 }: {
   restaurants: Restaurant[]
   selectedRestaurant: Restaurant | null
   onPinTap: (restaurant: Restaurant) => void
+  loading: boolean
 }) {
   return (
     <div className="flex-1 overflow-hidden relative">
@@ -187,7 +193,7 @@ function MapView({
         selectedRestaurant={selectedRestaurant}
         onPinTap={onPinTap}
       />
-      {restaurants.length === 0 && (
+      {restaurants.length === 0 && !loading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center bg-[var(--color-surface-card)] px-6 py-4 rounded-xl">
             <p className="text-[var(--color-text-secondary)] text-lg mb-2">No restaurants found</p>
@@ -204,11 +210,13 @@ function ListView({
   sortBy,
   onSortChange,
   onRestaurantTap,
+  userPosition,
 }: {
   restaurants: Restaurant[]
   sortBy: 'distance' | 'trending'
   onSortChange: (sort: 'distance' | 'trending') => void
   onRestaurantTap: (restaurant: Restaurant) => void
+  userPosition: { latitude: number; longitude: number } | null
 }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -264,11 +272,10 @@ function ListView({
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-xs text-[var(--color-text-secondary)]">
                       <span>
-                        {(Math.sqrt(
-                          Math.pow(restaurant.latitude - 33.4484, 2) +
-                            Math.pow(restaurant.longitude - -112.0740, 2)
-                        ) * 69).toFixed(1)}{' '}
-                        mi
+                        {userPosition
+                          ? `${getDistanceMiles(userPosition.latitude, userPosition.longitude, restaurant.latitude, restaurant.longitude).toFixed(1)} mi`
+                          : '...'
+                        }
                       </span>
                       <span>•</span>
                       <span>${restaurant.price_range}</span>

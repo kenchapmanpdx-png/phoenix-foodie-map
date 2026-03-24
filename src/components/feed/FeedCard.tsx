@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { ContentWithRelations } from '@/types'
 import { useUserStore } from '@/store/user'
+import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
 
 interface FeedCardProps {
   content: ContentWithRelations
@@ -12,6 +13,7 @@ interface FeedCardProps {
 export default function FeedCard({ content }: FeedCardProps) {
   const { toggleSaveContent, savedContentIds } = useUserStore()
   const isSaved = savedContentIds.includes(content.id)
+  const { position } = useGeolocation()
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -45,8 +47,10 @@ export default function FeedCard({ content }: FeedCardProps) {
   const gradientIndex = content.id.charCodeAt(0) % gradients.length
   const bgGradient = gradients[gradientIndex]
 
-  // Calculate distance (placeholder - in real app would use geolocation)
-  const distance = Math.floor(Math.random() * 8) + 1
+  // Calculate distance from user position (Haversine)
+  const distance = position
+    ? getDistanceMiles(position.latitude, position.longitude, content.restaurant.latitude, content.restaurant.longitude)
+    : null
 
   return (
     <Link href={`/content/${content.id}`}>
@@ -159,7 +163,7 @@ export default function FeedCard({ content }: FeedCardProps) {
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span className="text-xs text-white font-medium">{distance} km away</span>
+            <span className="text-xs text-white font-medium">{distance !== null ? `${distance.toFixed(1)} mi` : '...'}</span>
           </div>
         </div>
       </div>

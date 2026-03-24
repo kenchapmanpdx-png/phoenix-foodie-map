@@ -3,13 +3,12 @@ import { fetchRestaurantBySlug } from '@/lib/queries'
 import RestaurantDetailScreen from '@/components/restaurant/RestaurantDetailScreen'
 
 interface Props {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 
 export default async function RestaurantDetailPage({ params }: Props) {
-  const restaurant = await fetchRestaurantBySlug(params.slug)
+  const { slug } = await params
+  const restaurant = await fetchRestaurantBySlug(slug)
 
   if (!restaurant) {
     notFound()

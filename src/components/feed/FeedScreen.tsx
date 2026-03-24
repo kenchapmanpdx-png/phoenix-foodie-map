@@ -8,6 +8,7 @@ import FilterBar from './FilterBar'
 import FeedCard from './FeedCard'
 import VideoCard from './VideoCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
+import { FeedCardSkeleton, ShimmerStyle } from '@/components/shared/Skeleton'
 
 interface FeedScreenProps {
   initialCuisine?: string
@@ -67,7 +68,13 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
         }}
       >
         <div className="flex flex-col gap-2 p-2 min-h-full">
-          {filteredContent.length > 0 ? (
+          {loading ? (
+            <>
+              <ShimmerStyle />
+              <FeedCardSkeleton />
+              <FeedCardSkeleton />
+            </>
+          ) : filteredContent.length > 0 ? (
             filteredContent.map((content) => (
               <FeedCardWrapper
                 key={content.id}

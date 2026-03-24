@@ -6,8 +6,7 @@ import { Restaurant } from '@/types'
 import { useUserStore } from '@/store/user'
 import { isOpenNow } from '@/lib/utils'
 import { buildOutboundUrl } from '@/lib/utm'
-import { useContentWithRelations } from '@/hooks/useSupabaseData'
-import { useDishesByRestaurant } from '@/hooks/useSupabaseData'
+import { useContentWithRelations, useDishesByRestaurant, useContentDishLinks } from '@/hooks/useSupabaseData'
 // Icons are inlined below
 
 interface Props {
@@ -16,13 +15,20 @@ interface Props {
 
 export default function RestaurantDetailScreen({ restaurant }: Props) {
   const [expandHours, setExpandHours] = useState(false)
+  const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
   const { toggleSaveRestaurant, savedRestaurantIds } = useUserStore()
   const isSaved = savedRestaurantIds.includes(restaurant.id)
   const { content: allContent, loading: contentLoading } = useContentWithRelations()
   const { dishes, loading: dishesLoading } = useDishesByRestaurant(restaurant.id)
+  const { links: contentDishLinks } = useContentDishLinks(restaurant.id)
 
   // Get all content for this restaurant
-  const content = allContent.filter((c) => c.restaurant_id === restaurant.id)
+  const restaurantContent = allContent.filter((c) => c.restaurant_id === restaurant.id)
+
+  // Filter by selected dish if one is tapped
+  const content = selectedDishId
+    ? restaurantContent.filter((c) => contentDishLinks.some((link) => link.content_id === c.id && link.dish_id === selectedDishId))
+    : restaurantContent
 
   const priceDisplay = '$ '.repeat(restaurant.price_range)
 
@@ -87,9 +93,15 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   return (
     <div className="min-h-screen bg-surface-primary">
-      {/* Back button */}
-      <Link
-        href="/feed"
+      {/* Back button — uses browser history so it works from map, feed, or search */}
+      <button
+        onClick={() => {
+          if (window.history.length > 1) {
+            window.history.back()
+          } else {
+            window.location.href = '/feed'
+          }
+        }}
         className="fixed top-4 left-4 z-40 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
       >
         <svg
@@ -100,7 +112,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-      </Link>
+      </button>
 
       {/* Header hero image */}
       <div className="relative h-64 bg-gradient-to-br from-amber-900/20 to-orange-900/20">
@@ -286,9 +298,18 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
         </div>
 
         {/* Creator content grid */}
-        {content.length > 0 && (
+        {restaurantContent.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-text-primary mb-4">Creator Content</h2>
+            <h2 className="text-lg font-semibold text-text-primary mb-4">
+              {selectedDishId
+                ? `Content featuring ${dishes.find(d => d.id === selectedDishId)?.name ?? 'this dish'}`
+                : 'Creator Content'}
+              {selectedDishId && content.length === 0 && (
+                <span className="text-sm font-normal text-text-secondary ml-2">
+                  — no linked content yet
+                </span>
+              )}
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {content.map((item) => (
                 <Link
@@ -337,36 +358,54 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           </div>
         )}
 
-        {/* Dishes section */}
+        {/* Dishes section — tap to filter content */}
         {dishes.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-text-primary mb-4">What to Order</h2>
-            <div className="space-y-3">
-              {dishes.map((dish) => (
-                <div
-                  key={dish.id}
-                  className="bg-surface-card rounded-lg p-3 border border-surface-light/10 hover:border-surface-light/20 transition-colors"
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">What to Order</h2>
+              {selectedDishId && (
+                <button
+                  onClick={() => setSelectedDishId(null)}
+                  className="text-xs text-accent-primary font-medium"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 flex-shrink-0 rounded bg-gradient-to-br from-amber-900/20 to-orange-900/20" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-text-primary line-clamp-1">{dish.name}</h3>
-                      <p className="text-xs text-text-secondary line-clamp-2 mt-1">{dish.description}</p>
-                      <div className="flex items-center justify-between mt-2 gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-accent-primary/20 text-accent-primary text-xs rounded">
-                            {dish.category}
-                          </span>
-                          <span className="text-xs text-text-secondary">
-                            Featured {dish.feature_count}x
-                          </span>
+                  Show all content
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              {dishes.map((dish) => {
+                const isSelected = selectedDishId === dish.id
+                return (
+                  <div
+                    key={dish.id}
+                    onClick={() => setSelectedDishId(isSelected ? null : dish.id)}
+                    className={`bg-surface-card rounded-lg p-3 border transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'border-accent-primary/60 bg-accent-primary/5'
+                        : 'border-surface-light/10 hover:border-surface-light/20'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-16 h-16 flex-shrink-0 rounded bg-gradient-to-br from-amber-900/20 to-orange-900/20" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-text-primary line-clamp-1">{dish.name}</h3>
+                        <p className="text-xs text-text-secondary line-clamp-2 mt-1">{dish.description}</p>
+                        <div className="flex items-center justify-between mt-2 gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-accent-primary/20 text-accent-primary text-xs rounded">
+                              {dish.category}
+                            </span>
+                            <span className="text-xs text-text-secondary">
+                              Featured {dish.feature_count}x
+                            </span>
+                          </div>
+                          <span className="font-semibold text-text-primary">${dish.price}</span>
                         </div>
-                        <span className="font-semibold text-text-primary">${dish.price}</span>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

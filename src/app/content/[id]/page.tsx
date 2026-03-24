@@ -3,13 +3,12 @@ import { fetchContentWithRelationsById } from '@/lib/queries'
 import ContentDetailScreen from '@/components/feed/ContentDetailScreen'
 
 interface Props {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export default async function ContentDetailPage({ params }: Props) {
-  const content = await fetchContentWithRelationsById(params.id)
+  const { id } = await params
+  const content = await fetchContentWithRelationsById(id)
 
   if (!content) {
     notFound()
