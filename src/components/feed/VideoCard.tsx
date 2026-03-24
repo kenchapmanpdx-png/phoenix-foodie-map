@@ -64,6 +64,16 @@ export default function VideoCard({ content }: VideoCardProps) {
           <span className="text-9xl opacity-15">🎥</span>
         </div>
 
+        {/* Thumbnail image */}
+        {(content.thumbnail_url || content.media_url) && (
+          <img
+            src={content.thumbnail_url || content.media_url}
+            alt={content.restaurant.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
+
         {/* Video play button overlay */}
         {showPlayButton && (
           <div
