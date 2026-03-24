@@ -187,10 +187,10 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* SECTION C: Trending Now */}
+      {/* SECTION C: Recently Featured */}
       <div className="py-6">
         <div className="px-4 mb-4">
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Trending Now</h2>
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Recently Featured</h2>
         </div>
 
         {/* Horizontal carousel - scroll snap */}

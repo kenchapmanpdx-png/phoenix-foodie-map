@@ -16,7 +16,7 @@ const MOCK_ACTIVITY = [
   {
     id: 2,
     type: 'content_performance',
-    title: 'Your content is trending',
+    title: 'Your content is getting noticed',
     description: 'Sushi bowl video gained 2.3K views in last 24h',
     timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
     icon: '📈',

@@ -27,7 +27,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
   const { position } = useGeolocation()
   const [isListView, setIsListView] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
-  const [sortBy, setSortBy] = useState<'distance' | 'trending'>('distance')
+  const [sortBy, setSortBy] = useState<'distance' | 'newest'>('distance')
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
         return distA - distB
       })
     }
-    // Trending: sort by newest first
+    // Newest: sort by most recently added
     return [...filteredRestaurants].sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
@@ -212,8 +212,8 @@ function ListView({
   userPosition,
 }: {
   restaurants: Restaurant[]
-  sortBy: 'distance' | 'trending'
-  onSortChange: (sort: 'distance' | 'trending') => void
+  sortBy: 'distance' | 'newest'
+  onSortChange: (sort: 'distance' | 'newest') => void
   onRestaurantTap: (restaurant: Restaurant) => void
   userPosition: { latitude: number; longitude: number } | null
 }) {
@@ -234,14 +234,14 @@ function ListView({
           Nearest
         </button>
         <button
-          onClick={() => onSortChange('trending')}
+          onClick={() => onSortChange('newest')}
           className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-            sortBy === 'trending'
+            sortBy === 'newest'
               ? 'bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/40'
               : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
           }`}
         >
-          Trending
+          Newest
         </button>
       </div>
 

@@ -79,8 +79,6 @@ function StatusBadge({ status }: { status: GigStatus }) {
 function GigCard({ gig }: { gig: Gig }) {
   const daysUntilDeadline = Math.ceil((gig.deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   const isOverdue = daysUntilDeadline < 0
-  const isUrgent = daysUntilDeadline > 0 && daysUntilDeadline <= 3
-
   return (
     <div className="bg-surface-card rounded-lg border border-surface-light/5 overflow-hidden hover:border-accent-primary/30 transition-colors p-6 space-y-4">
       {/* Header */}
@@ -108,8 +106,8 @@ function GigCard({ gig }: { gig: Gig }) {
         </div>
         <div>
           <p className="text-xs text-text-secondary font-medium mb-1">DEADLINE</p>
-          <p className={`text-sm font-semibold ${isOverdue ? 'text-danger' : isUrgent ? 'text-accent-secondary' : 'text-text-primary'}`}>
-            {isOverdue ? '🔴 Overdue' : `${Math.abs(daysUntilDeadline)} days`}
+          <p className={`text-sm font-semibold ${isOverdue ? 'text-danger' : 'text-text-primary'}`}>
+            {isOverdue ? 'Overdue' : `${Math.abs(daysUntilDeadline)} days`}
           </p>
           <p className="text-xs text-text-secondary">{gig.deadline.toLocaleDateString()}</p>
         </div>

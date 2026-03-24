@@ -90,8 +90,8 @@ export default function SearchScreen() {
   const restaurants = filterRestaurants(query)
   const creators = filterCreators(query)
 
-  // Get trending dishes (most featured)
-  const trendingDishes = allDishes
+  // Get top dishes (most featured)
+  const topDishes = allDishes
     .map((dish) => {
       const restaurant = allRestaurants.find((r) => r.id === dish.restaurant_id)
       return { dish, restaurant }
@@ -138,9 +138,9 @@ export default function SearchScreen() {
           <>
             {/* Popular right now */}
             <div className="mb-8">
-              <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Popular right now</h2>
+              <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Most Featured Dishes</h2>
               <div className="space-y-3">
-                {trendingDishes.map(({ dish, restaurant }) => (
+                {topDishes.map(({ dish, restaurant }) => (
                   <Link
                     key={dish.id}
                     href={`/restaurant/${restaurant?.slug}#dish-${dish.id}`}

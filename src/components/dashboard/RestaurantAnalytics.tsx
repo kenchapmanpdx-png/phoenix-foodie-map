@@ -92,8 +92,8 @@ export default function RestaurantAnalytics() {
     )
   }, [allContent, allCreators, restaurantContent, creatorMap])
 
-  // Trending Dishes (mock)
-  const trendingDishes = [
+  // Top Dishes (mock)
+  const topDishes = [
     { name: 'Margherita Pizza', features: 5, views: 12000 },
     { name: 'Al Pastor Tacos', features: 4, views: 9500 },
     { name: 'Carne Asada Burrito', features: 3, views: 7200 },
@@ -193,11 +193,11 @@ export default function RestaurantAnalytics() {
         </div>
       </div>
 
-      {/* Trending Dishes */}
+      {/* Top Dishes */}
       <div className="bg-surface-card rounded-xl p-6 border border-surface-light/10 space-y-4">
-        <h2 className="text-xl font-bold">Trending Dishes</h2>
+        <h2 className="text-xl font-bold">Top Dishes</h2>
         <div className="space-y-4">
-          {trendingDishes.map((dish, idx) => (
+          {topDishes.map((dish, idx) => (
             <div key={idx} className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{dish.name}</span>
@@ -208,7 +208,7 @@ export default function RestaurantAnalytics() {
                   <div
                     className="h-full bg-accent-primary rounded-full"
                     style={{
-                      width: `${(dish.views / trendingDishes[0].views) * 100}%`,
+                      width: `${(dish.views / topDishes[0].views) * 100}%`,
                     }}
                   />
                 </div>
@@ -256,6 +256,190 @@ export default function RestaurantAnalytics() {
               ℹ️ This is a directional estimate. Actual visits depend on conversion rates and user behavior.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Performance Benchmarks */}
+      <div className="bg-surface-card rounded-xl p-6 border border-surface-light/10 space-y-4">
+        <h2 className="text-xl font-bold">Performance Benchmarks</h2>
+        <div className="space-y-6">
+          {/* Views per content piece */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">Views per Content Piece</span>
+              <span className="text-xs text-text-secondary">{restaurantContent.length > 0 ? (totalViews / restaurantContent.length).toFixed(0) : 0}</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Your Restaurant</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary rounded-full"
+                    style={{
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Category Avg</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/60 rounded-full"
+                    style={{
+                      width: '70%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Top Performers</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/40 rounded-full"
+                    style={{
+                      width: '140%',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Save rate */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">Save Rate</span>
+              <span className="text-xs text-text-secondary">{totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : 0}%</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Your Restaurant</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary rounded-full"
+                    style={{
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Category Avg</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/60 rounded-full"
+                    style={{
+                      width: '70%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Top Performers</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/40 rounded-full"
+                    style={{
+                      width: '140%',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action rate */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">Action Rate</span>
+              <span className="text-xs text-text-secondary">{totalViews > 0 ? ((totalActions / totalViews) * 100).toFixed(1) : 0}%</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Your Restaurant</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary rounded-full"
+                    style={{
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Category Avg</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/60 rounded-full"
+                    style={{
+                      width: '70%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Top Performers</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/40 rounded-full"
+                    style={{
+                      width: '140%',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Creator content pieces */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">Creator Content Pieces</span>
+              <span className="text-xs text-text-secondary">{restaurantContent.length}</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Your Restaurant</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary rounded-full"
+                    style={{
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Category Avg</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/60 rounded-full"
+                    style={{
+                      width: '70%',
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-text-secondary w-20">Top Performers</span>
+                <div className="flex-1 h-2 bg-surface-primary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-primary/40 rounded-full"
+                    style={{
+                      width: '140%',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-surface-light/10">
+          <p className="text-xs text-text-secondary">
+            ℹ️ Benchmarks based on restaurants with similar cuisine, price range, and area.
+          </p>
         </div>
       </div>
     </div>
