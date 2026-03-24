@@ -91,14 +91,14 @@ export default function MiniCard({ restaurant, onClose, onTap }: MiniCardProps) 
 
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/40 z-[1050] backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Mini Card Container - slides up from bottom */}
       <div
         ref={containerRef}
-        className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4"
+        className="fixed inset-x-0 bottom-0 z-[1100] px-4 pb-4"
         style={{
           transform: dragOffset > 0
             ? `translateY(${dragOffset}px)`
