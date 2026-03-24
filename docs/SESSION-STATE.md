@@ -77,9 +77,32 @@ This enables tracking: which restaurants drive clicks, which creators are effect
 - [ ] Create metrics aggregation endpoints for restaurant/creator dashboards
 - [ ] Add event retention policy (e.g., delete events older than 2 years)
 
+### Supabase Database Seeded (2026-03-23)
+- Seed script: `scripts/seed.sql` (68KB, 118 statements)
+- Execution: Direct API calls via Supabase Management API (`api.supabase.com/v1/projects/{id}/database/query`)
+- Method: Node.js script split SQL into 24 batches of 5 statements each, all returned 201
+- Row counts verified:
+  - restaurants: 30
+  - creators: 5
+  - content: 35
+  - dishes: 20
+  - content_dishes: 22
+- Seed data source: `phoenix_foodie_map_seed_data.json` (uploaded by user)
+- UUID generation: deterministic v5 UUIDs from string IDs (e.g., `rest_001` → `39d6a76c-...`)
+- Note: Unsplash thumbnail URLs used for dev; replace with Supabase Storage or Cloudflare Images for production
+
+### Mapbox GL JS (previous session)
+- Replaced Leaflet with Mapbox GL JS per blueprint spec
+- Dark style: `mapbox://styles/mapbox/dark-v11`
+- Custom pin elements with cuisine-based gradient colors
+- Pin entrance animations (staggered bounce)
+- flyTo on pin click (zoom 14, 800ms ease-out)
+- Mini card slide-up with touch drag dismiss
+
 ## Next Steps
 
-1. **Components**: Integrate `useTrackView` and `<TrackedLink>` into feed, detail pages, action buttons
-2. **Dashboard**: Build analytics dashboard using event queries
-3. **Production**: Deploy schema to Supabase, update analytics.ts to use Supabase client
-4. **Optimization**: Add event batching, offline queue, retry logic for production reliability
+1. **Wire Supabase client**: Replace `SEED_RESTAURANTS` import with live Supabase queries in MapScreen, feed, detail pages
+2. **Components**: Integrate `useTrackView` and `<TrackedLink>` into feed, detail pages, action buttons
+3. **Dashboard**: Build analytics dashboard using event queries
+4. **Image hosting**: Migrate Unsplash thumbnail URLs to Supabase Storage or Cloudflare Images
+5. **Optimization**: Add event batching, offline queue, retry logic for production reliability
