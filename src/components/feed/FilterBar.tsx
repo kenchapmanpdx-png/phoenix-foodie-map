@@ -46,8 +46,8 @@ export default function FilterBar() {
 
   return (
     <>
-      <div className="sticky top-0 z-40 bg-[var(--color-surface-primary)]/95 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto hide-scrollbar" style={{ height: '44px' }}>
+      <div className="sticky top-0 z-40 glass-heavy">
+        <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto hide-scrollbar" style={{ height: '48px' }}>
           {totalFiltersCount === 0 ? (
             <button
               onClick={() => setIsFilterSheetOpen(true)}

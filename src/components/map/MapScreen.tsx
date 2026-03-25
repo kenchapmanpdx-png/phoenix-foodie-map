@@ -107,7 +107,7 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
   return (
     <div className="h-screen bg-[var(--color-surface-primary)] flex flex-col">
       {/* Header with location and toggle */}
-      <div className="sticky top-0 z-40 bg-[var(--color-surface-primary)]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-40 glass-heavy px-4 py-3 flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-[var(--color-accent-primary)]" fill="currentColor" viewBox="0 0 24 24">

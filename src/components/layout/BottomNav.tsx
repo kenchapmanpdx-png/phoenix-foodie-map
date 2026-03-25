@@ -64,27 +64,35 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surface-card border-t border-surface-card safe-area-bottom">
-      <div className="flex justify-around h-14">
+    <nav className="fixed bottom-0 left-0 right-0 glass-heavy safe-area-bottom z-50">
+      <div className="flex justify-around h-16">
         {navItems.map((item) => {
           const active = isActive(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center justify-center flex-1 transition-colors"
+              className="flex flex-col items-center justify-center flex-1 btn-press relative"
               data-testid={item.testId}
             >
+              {/* Active indicator dot */}
+              {active && (
+                <div className="absolute top-1.5 w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+              )}
               <div
-                className={`flex items-center justify-center mb-0.5 transition-colors ${
-                  active ? 'text-accent-primary' : 'text-text-secondary'
+                className={`flex items-center justify-center mb-0.5 transition-all duration-300 ${
+                  active
+                    ? 'text-[var(--color-accent-primary)] scale-110'
+                    : 'text-[var(--color-text-secondary)]'
                 }`}
               >
                 {item.icon}
               </div>
               <span
-                className={`text-xs transition-colors ${
-                  active ? 'text-accent-primary' : 'text-text-secondary'
+                className={`text-[10px] font-medium transition-all duration-300 ${
+                  active
+                    ? 'text-[var(--color-accent-primary)]'
+                    : 'text-[var(--color-text-tertiary)]'
                 }`}
               >
                 {item.label}
