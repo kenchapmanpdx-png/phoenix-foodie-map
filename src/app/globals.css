@@ -2,15 +2,18 @@
 
 @theme {
   --color-surface-primary: #0A0A0A;
-  --color-surface-card: #1A1816;
-  --color-surface-elevated: #231F1C;
+  --color-surface-card: #161413;
+  --color-surface-elevated: #1E1B19;
   --color-surface-light: #FAFAF7;
   --color-text-primary: #FAF8F5;
   --color-text-secondary: #A8A29E;
-  --color-text-tertiary: #78716C;
+  --color-text-tertiary: #6B6560;
   --color-accent-primary: #F59E0B;
   --color-accent-secondary: #E8936B;
+  --color-accent-warm: #D4845A;
+  --color-accent-cool: #8B9FBF;
   --color-accent-glow: rgba(245, 158, 11, 0.15);
+  --color-border-glow: rgba(245, 158, 11, 0.08);
   --color-danger: #EF4444;
   --color-skeleton-base: #1A1816;
   --color-skeleton-highlight: #2A2622;
@@ -18,6 +21,8 @@
   --color-border-medium: rgba(255, 255, 255, 0.1);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-body: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
 
   /* Premium easing curves */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -32,7 +37,7 @@ html,
 body {
   background-color: var(--color-surface-primary);
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: contain;
@@ -417,6 +422,79 @@ video {
 
 .text-balance {
   text-wrap: balance;
+}
+
+/* ─── Display heading — editorial serif ─── */
+
+.heading-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+/* ─── Accent line decoration ─── */
+
+.accent-line::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+  margin-top: 12px;
+  border-radius: 1px;
+}
+
+/* ─── Hover image zoom (for cards) ─── */
+
+.img-zoom {
+  transition: transform 0.7s var(--ease-out-expo);
+}
+
+.img-zoom:hover {
+  transform: scale(1.04);
+}
+
+/* ─── Animated gradient text ─── */
+
+@property --gradient-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.text-gradient {
+  background: linear-gradient(
+    var(--gradient-angle),
+    var(--color-accent-primary),
+    var(--color-accent-secondary),
+    var(--color-accent-primary)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-rotate 4s ease infinite;
+}
+
+@keyframes gradient-rotate {
+  0% { --gradient-angle: 0deg; background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { --gradient-angle: 360deg; background-position: 0% center; }
+}
+
+/* ─── Divider line with fade ─── */
+
+.divider-fade {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border-medium), transparent);
+}
+
+/* ─── Number counter mono styling ─── */
+
+.mono-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
 /* ─── Reduced Motion ─── */

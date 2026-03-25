@@ -78,26 +78,71 @@ export default function HomeScreen() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
-      {/* Hero Header */}
+      {/* HERO SECTION */}
       <RevealSection>
-        <div className="px-5 pt-8 pb-2">
-          <h1 className="heading-hero text-4xl font-extrabold text-[var(--color-text-primary)]">
-            Phoenix<br />
-            <span className="text-[var(--color-accent-primary)]">Foodie Map</span>
+        <div className="px-6 pt-12 pb-4">
+          <h1 className="heading-display text-gradient text-5xl md:text-6xl mb-4">
+            Discover Phoenix's Best Bites
           </h1>
-          <p className="text-sm text-[var(--color-text-tertiary)] mt-2 font-medium">
-            Discover local food culture through creators you trust
+          <p className="text-base font-normal text-[var(--color-text-secondary)] mb-4 leading-relaxed">
+            Explore the city's finest dining through trusted local creators
           </p>
+          <div className="accent-line" />
         </div>
       </RevealSection>
 
-      {/* SECTION A: What are you craving? */}
+      {/* SOCIAL PROOF STATS BAR */}
+      <RevealSection delay={50}>
+        <div className="px-6 py-10">
+          <div className="flex justify-between items-center">
+            {/* Stat 1 */}
+            <div className="flex-1 text-center">
+              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
+                27
+              </p>
+              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
+                Restaurants
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="divider-fade w-px h-8 mx-4" />
+
+            {/* Stat 2 */}
+            <div className="flex-1 text-center">
+              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
+                4
+              </p>
+              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
+                Creators
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="divider-fade w-px h-8 mx-4" />
+
+            {/* Stat 3 */}
+            <div className="flex-1 text-center">
+              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
+                59
+              </p>
+              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
+                Dishes
+              </p>
+            </div>
+          </div>
+        </div>
+      </RevealSection>
+
+      {/* CUISINE GRID SECTION */}
       <RevealSection delay={100}>
-        <div className="px-5 py-6">
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4 tracking-tight">What are you craving?</h2>
+        <div className="px-6 py-10">
+          <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-6">
+            What are you craving?
+          </h2>
 
           {/* 2-column grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {CUISINE_TYPES.map((cuisine, index) => (
               <Link
                 key={cuisine.value}
@@ -107,12 +152,13 @@ export default function HomeScreen() {
                   className={`
                     card-interactive
                     bg-gradient-to-br ${cuisineGradients[index]}
-                    rounded-xl overflow-hidden
-                    aspect-[3/2] max-h-36
+                    rounded-2xl overflow-hidden
+                    aspect-[3/2] max-h-40
                     flex items-end
                     cursor-pointer
                     relative group
                   `}
+                  data-cursor="view"
                 >
                   {/* Background emoji */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -137,17 +183,19 @@ export default function HomeScreen() {
         </div>
       </RevealSection>
 
-      {/* SECTION B: Pick a vibe */}
+      {/* VIBE SECTION */}
       <RevealSection delay={150}>
-        <div className="py-5">
-          <div className="px-5 mb-3">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">Pick a vibe</h2>
+        <div className="py-10">
+          <div className="px-6 mb-4">
+            <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
+              Pick a vibe
+            </h2>
           </div>
 
           {/* Horizontal scrollable vibe pills */}
           <div
             ref={vibeScrollRef}
-            className="snap-x-mandatory overflow-x-auto hide-scrollbar px-5"
+            className="snap-x-mandatory overflow-x-auto hide-scrollbar px-6"
           >
             <div className="flex gap-2 w-fit">
               {VIBE_TAGS.map((vibe) => (
@@ -159,14 +207,15 @@ export default function HomeScreen() {
                     px-4 py-2 rounded-full
                     text-sm font-medium
                     transition-all duration-300
-                    block btn-press
+                    block btn-press pill-glow
                     ${
                       selectedVibe === vibe.value
-                        ? 'bg-[var(--color-accent-primary)] text-black shadow-lg shadow-[var(--color-accent-primary)]/20'
+                        ? 'bg-[var(--color-accent-primary)] text-black shadow-lg shadow-[var(--color-accent-primary)]/30'
                         : 'glass text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]'
                     }
                   `}
                   onClick={() => setSelectedVibe(vibe.value)}
+                  data-cursor="expand"
                 >
                   {vibe.label}
                 </Link>
@@ -176,26 +225,36 @@ export default function HomeScreen() {
         </div>
       </RevealSection>
 
-      {/* SECTION D: Dishes People Are Ordering (Amendment 1) */}
+      {/* POPULAR DISHES SECTION */}
       <RevealSection delay={200}>
-        <section className="px-5 mb-6">
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-3 tracking-tight">Dishes People Are Ordering</h2>
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+        <section className="px-6 py-10">
+          <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-6">
+            Dishes People Are Ordering
+          </h2>
+          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
             {topDishes.map((dish, idx) => (
               <Link href="/feed" key={dish.id}>
-                <div className="card-interactive w-36 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)]">
-                  <div className="relative w-full aspect-[4/3]">
+                <div className="card-interactive w-40 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-glow)] transition-colors duration-300">
+                  <div className="relative w-full aspect-[4/3] overflow-hidden">
                     {dish.thumbnail_url ? (
-                      <img src={dish.thumbnail_url} alt={dish.name} className="w-full h-full object-cover" />
+                      <img
+                        src={dish.thumbnail_url}
+                        alt={dish.name}
+                        className="w-full h-full object-cover img-zoom"
+                      />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-amber-900/80 to-orange-700/60 flex items-center justify-center">
-                        <span className="text-3xl opacity-40">🍽️</span>
+                        <span className="text-4xl opacity-40">🍽️</span>
                       </div>
                     )}
                   </div>
-                  <div className="p-2.5">
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{dish.name}</p>
-                    <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">{dish.feature_count} creator{dish.feature_count !== 1 ? 's' : ''}</p>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                      {dish.name}
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1">
+                      {dish.feature_count} creator{dish.feature_count !== 1 ? 's' : ''}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -204,16 +263,21 @@ export default function HomeScreen() {
         </section>
       </RevealSection>
 
-      {/* SECTION C: Recently Featured */}
+      {/* RECENTLY FEATURED SECTION */}
       <RevealSection delay={250}>
-        <div className="py-5">
-          <div className="px-5 mb-4">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">Recently Featured</h2>
+        <div className="py-10">
+          <div className="px-6 mb-6 flex items-baseline justify-between">
+            <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
+              Recently Featured
+            </h2>
+            <Link href="/feed" className="text-xs font-medium text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors">
+              See all →
+            </Link>
           </div>
 
           {/* Horizontal carousel */}
           <div className="snap-x-mandatory overflow-x-auto hide-scrollbar">
-            <div className="flex gap-4 px-5 w-fit">
+            <div className="flex gap-4 px-6 w-fit">
               {featuredContent.map((content) => (
                 <div
                   key={content.id}
@@ -232,7 +296,7 @@ export default function HomeScreen() {
       </RevealSection>
 
       {/* Bottom padding for fixed bottom nav */}
-      <div className="h-24" />
+      <div className="h-28" />
     </div>
   )
 }

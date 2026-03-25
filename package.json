@@ -10,10 +10,12 @@
     "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
+    "@studio-freight/lenis": "^1.0.42",
     "@supabase/supabase-js": "^2.100.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/leaflet": "^1.9.21",
     "autoprefixer": "^10.4.27",
+    "gsap": "^3.14.2",
     "leaflet": "^1.9.4",
     "mapbox-gl": "^3.20.0",
     "next": "^16.2.1",

@@ -1,12 +1,20 @@
-import { Inter } from 'next/font/google'
+import { DM_Sans, Playfair_Display } from 'next/font/google'
 import { Metadata, Viewport } from 'next'
 import './globals.css'
 import BottomNav from '@/components/layout/BottomNav'
+import SmoothScroll from '@/components/shared/SmoothScroll'
+import CustomCursor from '@/components/shared/CustomCursor'
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-dm-sans',
+  weight: ['400', '500', '600', '700'],
+})
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  weight: ['600', '700', '800'],
 })
 
 export const metadata: Metadata = {
@@ -28,15 +36,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${dmSans.variable} ${playfairDisplay.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Phoenix Foodie Map" />
       </head>
-      <body className="bg-surface-primary text-text-primary font-sans dark">
-        {children}
-        <BottomNav />
+      <body className="bg-surface-primary text-text-primary font-body dark">
+        <SmoothScroll>
+          <CustomCursor />
+          {children}
+          <BottomNav />
+        </SmoothScroll>
       </body>
     </html>
   )
