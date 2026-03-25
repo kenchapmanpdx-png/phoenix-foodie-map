@@ -22,12 +22,14 @@ function parseCreator(row: any): Creator {
 }
 
 // Amendment 4: surfaced-only restaurants for consumer feeds/search/map
+// Note: is_surfaced filter disabled until DB trigger trg_recompute_restaurant_metrics
+// is deployed. For MVP, all active restaurants are shown.
 export async function fetchSurfacedRestaurants(): Promise<Restaurant[]> {
   const { data, error } = await supabase
     .from('restaurants')
     .select('*')
     .eq('is_active', true)
-    .eq('is_surfaced', true)
+    // .eq('is_surfaced', true)  // Re-enable after deploying DB trigger
     .order('name')
   if (error) { console.error('fetchSurfacedRestaurants error:', error); return [] }
   return (data || []).map(parseRestaurant)
