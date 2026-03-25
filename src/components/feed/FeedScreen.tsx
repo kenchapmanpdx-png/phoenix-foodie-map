@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFiltersStore } from '@/store/filters'
 import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import { getVibeTimeScore } from '@/lib/utils'
@@ -19,6 +19,7 @@ interface FeedScreenProps {
 export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenProps) {
   const { activeFilters, setCuisines, setVibes } = useFiltersStore()
   const { content: allContent, loading } = useContentWithRelations()
+  const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid')
 
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -48,11 +49,9 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
       )
     }
 
-    // Sort by time-of-day vibe relevance first, then recency
     return filtered.sort((a, b) => {
       const scoreA = getVibeTimeScore(a.vibe_tags)
       const scoreB = getVibeTimeScore(b.vibe_tags)
-      // Primary: time-of-day vibe relevance, secondary: recency
       if (Math.abs(scoreA - scoreB) > 0.1) return scoreB - scoreA
       return new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime()
     })
@@ -63,54 +62,86 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
       {/* Filter bar */}
       <FilterBar />
 
-      {/* Feed container with scroll snap */}
-      <div
-        className="flex-1 overflow-y-scroll snap-y-mandatory hide-scrollbar"
-        style={{
-          scrollBehavior: 'smooth',
-          scrollSnapType: 'y proximity',
-        }}
-      >
-        <div className="flex flex-col gap-2 p-2 min-h-full">
-          {loading ? (
-            <>
-              <ShimmerStyle />
+      {/* View mode toggle bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)]">
+        <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
+          {filteredContent.length} {filteredContent.length === 1 ? 'result' : 'results'}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
+            aria-label="Grid view"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="3" width="8" height="8" rx="1.5" />
+              <rect x="13" y="3" width="8" height="8" rx="1.5" />
+              <rect x="3" y="13" width="8" height="8" rx="1.5" />
+              <rect x="13" y="13" width="8" height="8" rx="1.5" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('single')}
+            className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'single' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
+            aria-label="Single view"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Feed content */}
+      <div className="flex-1 overflow-y-scroll hide-scrollbar">
+        {loading ? (
+          <div className="p-2">
+            <ShimmerStyle />
+            <div className="grid grid-cols-2 gap-2">
               <FeedCardSkeleton />
               <FeedCardSkeleton />
-            </>
-          ) : filteredContent.length > 0 ? (
-            filteredContent.map((content) => (
+              <FeedCardSkeleton />
+              <FeedCardSkeleton />
+            </div>
+          </div>
+        ) : filteredContent.length > 0 ? (
+          <div className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-2 gap-2 p-2 pb-24'
+              : 'flex flex-col gap-3 p-3 pb-24'
+          }>
+            {filteredContent.map((content) => (
               <FeedCardWrapper
                 key={content.id}
                 content={content}
+                compact={viewMode === 'grid'}
               />
-            ))
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-[var(--color-text-secondary)] text-lg mb-2">No content found</p>
-                <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <p className="text-[var(--color-text-secondary)] text-lg mb-2">No content found</p>
+              <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// Card wrapper component to handle intersection observer
-function FeedCardWrapper({ content }: { content: ContentWithRelations }) {
+function FeedCardWrapper({ content, compact }: { content: ContentWithRelations; compact: boolean }) {
   const [ref, isInView] = useIntersectionObserver({
-    threshold: 0.15,
-    rootMargin: '0px 0px -50px 0px',
+    threshold: 0.1,
+    rootMargin: '0px 0px -30px 0px',
   })
 
   const CardComponent = content.content_type === 'video' ? VideoCard : FeedCard
 
   return (
     <div ref={ref} className={`feed-card ${isInView ? 'in-view' : ''}`}>
-      <CardComponent content={content} />
+      <CardComponent content={content} compact={compact} />
     </div>
   )
 }
