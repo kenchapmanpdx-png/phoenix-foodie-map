@@ -22,12 +22,17 @@ interface MapScreenProps {
 
 export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProps) {
   const router = useRouter()
-  const { activeFilters, setCuisines, setVibes } = useFiltersStore()
+  const { activeFilters, setCuisines, setVibes, initialize } = useFiltersStore()
   const { restaurants: allRestaurants, loading } = useSurfacedRestaurants()
   const { position } = useGeolocation()
   const [isListView, setIsListView] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [sortBy, setSortBy] = useState<'distance' | 'newest'>('distance')
+
+  // Flip client-only filter defaults (e.g. openNow) after hydration.
+  useEffect(() => {
+    initialize()
+  }, [initialize])
 
   // Initialize filters from URL params
   useEffect(() => {

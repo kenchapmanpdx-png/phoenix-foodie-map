@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { create } from 'zustand'
 
 interface GeoPosition {
   latitude: number
@@ -11,6 +12,10 @@ interface GeolocationState {
   position: GeoPosition | null
   error: string | null
   loading: boolean
+  fallbackUsed: boolean
+  /** Has a request been initiated? (singleton guard) */
+  started: boolean
+  start: () => void
 }
 
 // Haversine formula — returns distance in miles
@@ -32,51 +37,76 @@ export function getDistanceMiles(
 // Default center: Phoenix, AZ
 const PHOENIX_CENTER: GeoPosition = { latitude: 33.4484, longitude: -112.074 }
 
-export function useGeolocation(): GeolocationState & { fallbackUsed: boolean } {
-  const [state, setState] = useState<GeolocationState>({
-    position: null,
-    error: null,
-    loading: true,
-  })
-  const [fallbackUsed, setFallbackUsed] = useState(false)
+export const useGeolocationStore = create<GeolocationState>((set, get) => ({
+  position: null,
+  error: null,
+  loading: true,
+  fallbackUsed: false,
+  started: false,
+  start: () => {
+    if (get().started) return
+    set({ started: true })
 
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setState({ position: PHOENIX_CENTER, error: 'Geolocation not supported', loading: false })
-      setFallbackUsed(true)
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      set({
+        position: PHOENIX_CENTER,
+        error: 'Geolocation not supported',
+        loading: false,
+        fallbackUsed: true,
+      })
       return
     }
 
     const timeoutId = setTimeout(() => {
-      // If geolocation takes too long, fall back to Phoenix center
-      setState((prev) => {
-        if (prev.loading) {
-          setFallbackUsed(true)
-          return { position: PHOENIX_CENTER, error: 'timeout', loading: false }
-        }
-        return prev
-      })
+      if (get().loading) {
+        set({
+          position: PHOENIX_CENTER,
+          error: 'timeout',
+          loading: false,
+          fallbackUsed: true,
+        })
+      }
     }, 5000)
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         clearTimeout(timeoutId)
-        setState({
+        set({
           position: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
           error: null,
           loading: false,
+          fallbackUsed: false,
         })
       },
       (err) => {
         clearTimeout(timeoutId)
-        setState({ position: PHOENIX_CENTER, error: err.message, loading: false })
-        setFallbackUsed(true)
+        set({
+          position: PHOENIX_CENTER,
+          error: err.message,
+          loading: false,
+          fallbackUsed: true,
+        })
       },
       { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
     )
+  },
+}))
 
-    return () => clearTimeout(timeoutId)
-  }, [])
+/**
+ * Subscribes to the singleton geolocation store, kicking off the one
+ * navigator request on first mount. Safe to call from N components — only
+ * one network/permission prompt runs for the lifetime of the page.
+ */
+export function useGeolocation() {
+  const position = useGeolocationStore((s) => s.position)
+  const error = useGeolocationStore((s) => s.error)
+  const loading = useGeolocationStore((s) => s.loading)
+  const fallbackUsed = useGeolocationStore((s) => s.fallbackUsed)
+  const start = useGeolocationStore((s) => s.start)
 
-  return { ...state, fallbackUsed }
+  useEffect(() => {
+    start()
+  }, [start])
+
+  return { position, error, loading, fallbackUsed }
 }

@@ -6,8 +6,7 @@ import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import { getVibeTimeScore } from '@/lib/utils'
 import type { CuisineType, VibeTag, ContentWithRelations } from '@/types'
 import FilterBar from './FilterBar'
-import FeedCard from './FeedCard'
-import VideoCard from './VideoCard'
+import ContentCard from '@/components/shared/ContentCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
 import { FeedCardSkeleton, ShimmerStyle } from '@/components/shared/Skeleton'
 
@@ -17,9 +16,15 @@ interface FeedScreenProps {
 }
 
 export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenProps) {
-  const { activeFilters, setCuisines, setVibes } = useFiltersStore()
+  const { activeFilters, setCuisines, setVibes, initialize } = useFiltersStore()
   const { content: allContent, loading } = useContentWithRelations()
   const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid')
+
+  // Flip the client-only filter defaults (e.g. openNow based on local time)
+  // after mount to avoid an SSR/client hydration mismatch.
+  useEffect(() => {
+    initialize()
+  }, [initialize])
 
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -137,11 +142,9 @@ function FeedCardWrapper({ content, compact }: { content: ContentWithRelations; 
     rootMargin: '0px 0px -30px 0px',
   })
 
-  const CardComponent = content.content_type === 'video' ? VideoCard : FeedCard
-
   return (
     <div ref={ref} className={`feed-card ${isInView ? 'in-view' : ''}`}>
-      <CardComponent content={content} compact={compact} />
+      <ContentCard content={content} variant={compact ? 'grid' : 'full'} />
     </div>
   )
 }

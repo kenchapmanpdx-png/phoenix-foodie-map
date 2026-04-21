@@ -23,7 +23,8 @@ export function useTrackView(options: UseTrackViewOptions) {
   const hasTrackedRef = useRef(false)
 
   useEffect(() => {
-    if (!ref.current) return
+    const el = ref.current
+    if (!el) return
     if (onceOnly && hasTrackedRef.current) return
 
     const observer = new IntersectionObserver(
@@ -52,12 +53,10 @@ export function useTrackView(options: UseTrackViewOptions) {
       { threshold: 0.5 }
     )
 
-    observer.observe(ref.current)
+    observer.observe(el)
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current)
-      }
+      observer.unobserve(el)
       observer.disconnect()
     }
   }, [contentId, restaurantId, creatorId, sourceScreen, onceOnly])

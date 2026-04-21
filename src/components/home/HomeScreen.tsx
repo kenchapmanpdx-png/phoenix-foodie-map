@@ -3,11 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
-import { useContentWithRelations, useDishes } from '@/hooks/useSupabaseData'
+import {
+  useContentWithRelations,
+  useDishes,
+  useRestaurants,
+  useCreators,
+} from '@/hooks/useSupabaseData'
 import { useUserStore } from '@/store/user'
 import { supabase } from '@/lib/supabase'
 import ContentCard from '@/components/shared/ContentCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
+
+// Throttle `last_app_open` writes to at most once per hour per browser
+// to avoid a Supabase UPDATE on every tab switch / focus.
+const LAST_APP_OPEN_KEY = 'phx-foodie:last-app-open'
+const LAST_APP_OPEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 function RevealSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const [ref, isInView] = useIntersectionObserver({ threshold: 0.1, rootMargin: '0px 0px -40px 0px' })
@@ -27,17 +37,28 @@ export default function HomeScreen() {
   const vibeScrollRef = useRef<HTMLDivElement>(null)
   const { content: allContent, loading } = useContentWithRelations()
   const { dishes } = useDishes()
+  const { restaurants } = useRestaurants()
+  const { creators } = useCreators()
   const { user } = useUserStore()
 
-  // Amendment 9: Track last_app_open on mount
+  // Amendment 9: Track last_app_open on mount, throttled to once/hour per
+  // browser via localStorage so tab switches and route changes don't
+  // hammer Supabase with UPDATE queries.
   useEffect(() => {
-    if (user?.id) {
-      supabase
-        .from('users')
-        .update({ last_app_open: new Date().toISOString() })
-        .eq('id', user.id)
-        .then(() => {})
+    const userId = user?.id
+    if (!userId) return
+    try {
+      const raw = localStorage.getItem(LAST_APP_OPEN_KEY)
+      const last = raw ? Number(raw) : 0
+      if (Date.now() - last < LAST_APP_OPEN_TTL_MS) return
+      localStorage.setItem(LAST_APP_OPEN_KEY, String(Date.now()))
+    } catch {
+      // SSR or storage quota — fall through to update anyway
     }
+    void supabase
+      .from('users')
+      .update({ last_app_open: new Date().toISOString() })
+      .eq('id', userId)
   }, [user?.id])
 
   // Warm gradient combinations for cuisine cards
@@ -98,7 +119,7 @@ export default function HomeScreen() {
             {/* Stat 1 */}
             <div className="flex-1 text-center">
               <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                27
+                {restaurants.length || '—'}
               </p>
               <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
                 Restaurants
@@ -111,7 +132,7 @@ export default function HomeScreen() {
             {/* Stat 2 */}
             <div className="flex-1 text-center">
               <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                4
+                {creators.length || '—'}
               </p>
               <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
                 Creators
@@ -124,7 +145,7 @@ export default function HomeScreen() {
             {/* Stat 3 */}
             <div className="flex-1 text-center">
               <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                59
+                {dishes.length || '—'}
               </p>
               <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
                 Dishes
@@ -283,11 +304,7 @@ export default function HomeScreen() {
                   key={content.id}
                   className="snap-start flex-shrink-0"
                 >
-                  <ContentCard
-                    content={content}
-                    size="large"
-                    onClick={() => {}}
-                  />
+                  <ContentCard content={content} variant="hero" />
                 </div>
               ))}
             </div>

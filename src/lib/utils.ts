@@ -60,10 +60,19 @@ export function getVibeTimeScore(vibeTags: string[]): number {
   const config = TIME_VIBE_BOOSTS[tod]
   if (!config) return 1.0
 
+  // Case-insensitive exact-match. Previously used bidirectional `includes`
+  // which false-matched substrings (e.g. empty strings matched everything,
+  // and "Brunch Menu" matched "Brunch"). Canonical tags are defined in
+  // TIME_VIBE_BOOSTS so equality is what we want.
+  const boost = new Set(config.boost.map((s) => s.toLowerCase()))
+  const suppress = new Set(config.suppress.map((s) => s.toLowerCase()))
+
   let score = 1.0
-  for (const vibe of vibeTags) {
-    if (config.boost.some(b => vibe.includes(b) || b.includes(vibe))) score *= 1.5
-    if (config.suppress.some(s => vibe.includes(s) || s.includes(vibe))) score *= 0.5
+  for (const raw of vibeTags) {
+    if (!raw) continue
+    const vibe = raw.toLowerCase()
+    if (boost.has(vibe)) score *= 1.5
+    if (suppress.has(vibe)) score *= 0.5
   }
   return score
 }
