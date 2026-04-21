@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
 import {
   useContentWithRelations,
   useDishes,
-  useRestaurants,
   useCreators,
 } from '@/hooks/useSupabaseData'
 import { useUserStore } from '@/store/user'
 import { supabase } from '@/lib/supabase'
 import ContentCard from '@/components/shared/ContentCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
+import type { CuisineType } from '@/types'
 
 // Throttle `last_app_open` writes to at most once per hour per browser
 // to avoid a Supabase UPDATE on every tab switch / focus.
@@ -35,9 +35,8 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
 export default function HomeScreen() {
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null)
   const vibeScrollRef = useRef<HTMLDivElement>(null)
-  const { content: allContent, loading } = useContentWithRelations()
+  const { content: allContent } = useContentWithRelations()
   const { dishes } = useDishes()
-  const { restaurants } = useRestaurants()
   const { creators } = useCreators()
   const { user } = useUserStore()
 
@@ -97,63 +96,184 @@ export default function HomeScreen() {
     .sort((a, b) => (b.feature_count || 0) - (a.feature_count || 0))
     .slice(0, 8)
 
+  // Design fix #1: Hero content — top item with an image
+  const heroContent = useMemo(
+    () => allContent.find((c) => c.thumbnail_url || c.media_url) ?? allContent[0],
+    [allContent]
+  )
+
+  // Design fix #2: Cuisine-specific photography map
+  // For each cuisine, find the first content item whose restaurant includes that cuisine
+  const cuisineImageMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const cuisine of CUISINE_TYPES) {
+      const match = allContent.find(
+        (c) =>
+          c.restaurant?.cuisine_types?.includes(cuisine.value as CuisineType) &&
+          (c.thumbnail_url || c.media_url)
+      )
+      if (match) {
+        map[cuisine.value] = (match.thumbnail_url || match.media_url) as string
+      }
+    }
+    return map
+  }, [allContent])
+
+  // Design fix #3: Featured creators ("scouts") — founding first, fall back to top 4
+  const featuredCreators = useMemo(() => {
+    const founders = creators.filter((c) => c.is_founding_creator)
+    const pool = founders.length >= 4 ? founders : creators
+    return pool.slice(0, 4)
+  }, [creators])
+
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
-      {/* HERO SECTION */}
+      {/* HERO SECTION — full-bleed featured content */}
       <RevealSection>
-        <div className="px-6 pt-12 pb-4">
-          <h1 className="heading-display text-gradient text-5xl md:text-6xl mb-4">
-            Discover Phoenix's Best Bites
-          </h1>
-          <p className="text-base font-normal text-[var(--color-text-secondary)] mb-4 leading-relaxed">
-            Explore the city's finest dining through trusted local creators
-          </p>
-          <div className="accent-line" />
-        </div>
+        {heroContent && (heroContent.thumbnail_url || heroContent.media_url) ? (
+          <Link
+            href="/feed"
+            className="block relative w-full h-[70svh] min-h-[480px] max-h-[720px] overflow-hidden group"
+            data-cursor="view"
+          >
+            {/* Background image */}
+            <img
+              src={(heroContent.thumbnail_url || heroContent.media_url) as string}
+              alt={heroContent.restaurant?.name || 'Featured'}
+              className="absolute inset-0 w-full h-full object-cover img-zoom"
+            />
+
+            {/* Scrim — top fade for wordmark + bottom fade for copy */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none" />
+
+            {/* Top overline / wordmark */}
+            <div className="absolute top-0 left-0 right-0 px-6 pt-10 z-10 flex items-center justify-between">
+              <p className="text-[11px] tracking-[0.3em] uppercase text-white/80 font-medium">
+                Phoenix Foodie Map
+              </p>
+              <p className="text-[11px] tracking-[0.2em] uppercase text-[var(--color-accent-primary)] font-semibold">
+                Featured today
+              </p>
+            </div>
+
+            {/* Bottom content */}
+            <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 z-10">
+              {/* Creator chip */}
+              {heroContent.creator && (
+                <div className="flex items-center gap-2 mb-4">
+                  {heroContent.creator.avatar_url ? (
+                    <img
+                      src={heroContent.creator.avatar_url}
+                      alt={heroContent.creator.display_name}
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-[var(--color-accent-primary)]/80"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-[var(--color-accent-primary)]/80 flex items-center justify-center text-xs font-bold text-white">
+                      {heroContent.creator.display_name?.charAt(0) || '?'}
+                    </div>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-white/60 uppercase tracking-wider">
+                      Scouted by
+                    </span>
+                    <span className="text-sm font-semibold text-white">
+                      {heroContent.creator.display_name}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Headline — restaurant or caption */}
+              <h1 className="heading-display text-white text-4xl md:text-5xl leading-[1.05] mb-2 drop-shadow-lg">
+                {heroContent.restaurant?.name || "Phoenix's Best Bites"}
+              </h1>
+
+              {/* Supporting caption */}
+              {heroContent.caption && (
+                <p className="text-sm text-white/80 line-clamp-2 max-w-md mb-4 leading-relaxed">
+                  {heroContent.caption}
+                </p>
+              )}
+
+              {/* CTA */}
+              <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-accent-primary)] group-hover:gap-3 transition-all duration-300">
+                Open the feed
+                <span aria-hidden>→</span>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="px-6 pt-12 pb-4">
+            <p className="text-[11px] tracking-[0.3em] uppercase text-white/60 font-medium mb-3">
+              Phoenix Foodie Map
+            </p>
+            <h1 className="heading-display text-gradient text-5xl md:text-6xl mb-4">
+              Discover Phoenix&apos;s Best Bites
+            </h1>
+            <p className="text-base font-normal text-[var(--color-text-secondary)] mb-4 leading-relaxed">
+              Explore the city&apos;s finest dining through trusted local creators
+            </p>
+            <div className="accent-line" />
+          </div>
+        )}
       </RevealSection>
 
-      {/* SOCIAL PROOF STATS BAR */}
-      <RevealSection delay={50}>
-        <div className="px-6 py-10">
-          <div className="flex justify-between items-center">
-            {/* Stat 1 */}
-            <div className="flex-1 text-center">
-              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                {restaurants.length || '—'}
-              </p>
-              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
-                Restaurants
-              </p>
+      {/* MEET YOUR SCOUTS — featured creators row */}
+      {featuredCreators.length > 0 && (
+        <RevealSection delay={50}>
+          <div className="px-6 pt-10 pb-6">
+            <div className="flex items-baseline justify-between mb-5">
+              <h2 className="heading-display text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">
+                Your Phoenix food scouts
+              </h2>
+              <Link
+                href="/search"
+                className="text-xs font-medium text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+              >
+                All creators →
+              </Link>
             </div>
 
-            {/* Divider */}
-            <div className="divider-fade w-px h-8 mx-4" />
-
-            {/* Stat 2 */}
-            <div className="flex-1 text-center">
-              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                {creators.length || '—'}
-              </p>
-              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
-                Creators
-              </p>
-            </div>
-
-            {/* Divider */}
-            <div className="divider-fade w-px h-8 mx-4" />
-
-            {/* Stat 3 */}
-            <div className="flex-1 text-center">
-              <p className="mono-number text-3xl font-bold text-[var(--color-accent-primary)] mb-1">
-                {dishes.length || '—'}
-              </p>
-              <p className="text-xs text-[var(--color-text-tertiary)] font-medium tracking-wide">
-                Dishes
-              </p>
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-2">
+              {featuredCreators.map((creator) => (
+                <Link
+                  key={creator.id}
+                  href={`/creator/${creator.id}`}
+                  className="flex-shrink-0 flex flex-col items-center w-20 group"
+                  data-cursor="view"
+                >
+                  <div className="relative mb-2">
+                    {creator.avatar_url ? (
+                      <img
+                        src={creator.avatar_url}
+                        alt={creator.display_name}
+                        className="w-16 h-16 rounded-full object-cover ring-2 ring-[var(--color-border-subtle)] group-hover:ring-[var(--color-accent-primary)] transition-all duration-300"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-[var(--color-border-subtle)] group-hover:ring-[var(--color-accent-primary)] transition-all duration-300 flex items-center justify-center text-lg font-bold text-white">
+                        {creator.display_name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    {creator.is_founding_creator && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--color-accent-primary)] ring-2 ring-[var(--color-surface-primary)] flex items-center justify-center">
+                        <span className="text-[9px] text-black font-bold">★</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full">
+                    {creator.display_name}
+                  </p>
+                  {creator.specialties?.[0] && (
+                    <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-1 w-full mt-0.5">
+                      {creator.specialties[0]}
+                    </p>
+                  )}
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      </RevealSection>
+        </RevealSection>
+      )}
 
       {/* CUISINE GRID SECTION */}
       <RevealSection delay={100}>
@@ -162,44 +282,58 @@ export default function HomeScreen() {
             What are you craving?
           </h2>
 
-          {/* 2-column grid */}
+          {/* 2-column grid — cuisine photography with gradient fallback */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {CUISINE_TYPES.map((cuisine, index) => (
-              <Link
-                key={cuisine.value}
-                href={`/feed?cuisine=${cuisine.value}`}
-              >
-                <div
-                  className={`
-                    card-interactive
-                    bg-gradient-to-br ${cuisineGradients[index]}
-                    rounded-2xl overflow-hidden
-                    aspect-[3/2] max-h-40
-                    flex items-end
-                    cursor-pointer
-                    relative group
-                  `}
-                  data-cursor="view"
-                >
-                  {/* Background emoji */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-5xl opacity-15 group-hover:opacity-25 group-hover:scale-110 transition-all duration-500">
-                      {cuisineEmojis[cuisine.label] || '🍽️'}
-                    </span>
-                  </div>
+            {CUISINE_TYPES.map((cuisine, index) => {
+              const image = cuisineImageMap[cuisine.value]
+              return (
+                <Link key={cuisine.value} href={`/feed?cuisine=${cuisine.value}`}>
+                  <div
+                    className="
+                      card-interactive
+                      rounded-2xl overflow-hidden
+                      aspect-[3/2] max-h-40
+                      flex items-end
+                      cursor-pointer
+                      relative group
+                      bg-[var(--color-surface-card)]
+                    "
+                    data-cursor="view"
+                  >
+                    {image ? (
+                      // Real cuisine photography
+                      <img
+                        src={image}
+                        alt={cuisine.label}
+                        className="absolute inset-0 w-full h-full object-cover img-zoom"
+                      />
+                    ) : (
+                      // Gradient + emoji fallback when no photo is available yet
+                      <>
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${cuisineGradients[index]}`}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-5xl opacity-25 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500">
+                            {cuisineEmojis[cuisine.label] || '🍽️'}
+                          </span>
+                        </div>
+                      </>
+                    )}
 
-                  {/* Bottom scrim */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                    {/* Bottom scrim for label legibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-                  {/* Label */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                    <h3 className="text-sm font-bold text-white drop-shadow-md">
-                      {cuisine.label}
-                    </h3>
+                    {/* Label */}
+                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                      <h3 className="text-sm font-bold text-white drop-shadow-md">
+                        {cuisine.label}
+                      </h3>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         </div>
       </RevealSection>
