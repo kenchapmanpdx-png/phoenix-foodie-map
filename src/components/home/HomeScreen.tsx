@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
 import {
@@ -19,6 +19,31 @@ import type { CuisineType } from '@/types'
 const LAST_APP_OPEN_KEY = 'phx-foodie:last-app-open'
 const LAST_APP_OPEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 
+// Masonry layout pattern for cuisine tiles — col-span + aspect-ratio per index.
+// Paired within rows so adjacent tiles share row height, rows themselves vary.
+const CUISINE_LAYOUT = [
+  'col-span-2 aspect-[16/9]',   // 0 — wide hero, full row
+  'col-span-1 aspect-[3/4]',    // 1 — tall
+  'col-span-1 aspect-[3/4]',    // 2 — tall
+  'col-span-1 aspect-[4/5]',    // 3 — slightly taller
+  'col-span-1 aspect-[4/5]',    // 4 — slightly taller
+  'col-span-2 aspect-[2/1]',    // 5 — cinema wide
+  'col-span-1 aspect-square',   // 6 — square
+  'col-span-1 aspect-square',   // 7 — square
+  'col-span-1 aspect-[3/4]',    // 8 — tall
+  'col-span-1 aspect-[3/4]',    // 9 — tall
+]
+
+// Overline — replaces the old serif h2 headers throughout home.
+function Overline({ children, accent = true }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <p className="text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 flex items-center gap-2">
+      {accent && <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />}
+      {children}
+    </p>
+  )
+}
+
 function RevealSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const [ref, isInView] = useIntersectionObserver({ threshold: 0.1, rootMargin: '0px 0px -40px 0px' })
   return (
@@ -33,8 +58,6 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
 }
 
 export default function HomeScreen() {
-  const [selectedVibe, setSelectedVibe] = useState<string | null>(null)
-  const vibeScrollRef = useRef<HTMLDivElement>(null)
   const { content: allContent } = useContentWithRelations()
   const { dishes } = useDishes()
   const { creators } = useCreators()
@@ -60,7 +83,7 @@ export default function HomeScreen() {
       .eq('id', userId)
   }, [user?.id])
 
-  // Warm gradient combinations for cuisine cards
+  // Warm gradients as fallback when cuisine has no photo yet
   const cuisineGradients = [
     'from-amber-900/90 via-orange-800/80 to-red-700/70',
     'from-orange-900/90 via-yellow-700/80 to-amber-600/70',
@@ -74,7 +97,6 @@ export default function HomeScreen() {
     'from-yellow-800/90 via-orange-800/80 to-red-700/70',
   ]
 
-  // Food emojis for different cuisines
   const cuisineEmojis: Record<string, string> = {
     Italian: '🍝',
     Japanese: '🍱',
@@ -88,22 +110,28 @@ export default function HomeScreen() {
     American: '🍔',
   }
 
-  // Get featured content (first 5 from DB)
-  const featuredContent = allContent.slice(0, 5)
+  // Reels rail — videos first, then photos, up to 10 items with media.
+  const reelsContent = useMemo(() => {
+    const withMedia = allContent.filter((c) => c.thumbnail_url || c.media_url)
+    const videos = withMedia.filter((c) => c.content_type === 'video')
+    const photos = withMedia.filter((c) => c.content_type !== 'video')
+    return [...videos, ...photos].slice(0, 10)
+  }, [allContent])
 
-  // Amendment 1: Sort dishes by feature_count descending, take top 8
-  const topDishes = dishes
-    .sort((a, b) => (b.feature_count || 0) - (a.feature_count || 0))
-    .slice(0, 8)
+  // Featured content carousel — top 5 content items.
+  const featuredContent = useMemo(() => allContent.slice(0, 5), [allContent])
 
-  // Design fix #1: Hero content — top item with an image
-  const heroContent = useMemo(
-    () => allContent.find((c) => c.thumbnail_url || c.media_url) ?? allContent[0],
-    [allContent]
+  // Top dishes — sort by feature_count desc, take 8.
+  const topDishes = useMemo(
+    () =>
+      [...dishes]
+        .sort((a, b) => (b.feature_count || 0) - (a.feature_count || 0))
+        .slice(0, 8),
+    [dishes]
   )
 
-  // Design fix #2: Cuisine-specific photography map
-  // For each cuisine, find the first content item whose restaurant includes that cuisine
+  // Cuisine-specific photography. For each cuisine, find the first content
+  // item whose restaurant includes that cuisine and has media.
   const cuisineImageMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const cuisine of CUISINE_TYPES) {
@@ -119,7 +147,7 @@ export default function HomeScreen() {
     return map
   }, [allContent])
 
-  // Design fix #3: Featured creators ("scouts") — founding first, fall back to top 4
+  // Featured "scouts" — founding creators first, fall back to top 4 creators.
   const featuredCreators = useMemo(() => {
     const founders = creators.filter((c) => c.is_founding_creator)
     const pool = founders.length >= 4 ? founders : creators
@@ -128,113 +156,91 @@ export default function HomeScreen() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
-      {/* HERO SECTION — full-bleed featured content */}
-      <RevealSection>
-        {heroContent && (heroContent.thumbnail_url || heroContent.media_url) ? (
-          <Link
-            href="/feed"
-            className="block relative w-full h-[70svh] min-h-[480px] max-h-[720px] overflow-hidden group"
-            data-cursor="view"
-          >
-            {/* Background image */}
-            <img
-              src={(heroContent.thumbnail_url || heroContent.media_url) as string}
-              alt={heroContent.restaurant?.name || 'Featured'}
-              className="absolute inset-0 w-full h-full object-cover img-zoom"
-            />
+      {/* REELS RAIL — flush to top, TikTok-style pixel-0 content */}
+      {reelsContent.length > 0 && (
+        <section className="pt-3">
+          <div className="overflow-x-auto hide-scrollbar">
+            <div className="flex gap-2 px-3 pb-2 w-fit">
+              {reelsContent.map((content, idx) => {
+                const media = content.thumbnail_url || content.media_url
+                const creator = content.creator
+                const isVideo = content.content_type === 'video'
+                return (
+                  <Link
+                    key={content.id}
+                    href="/feed"
+                    className="flex-shrink-0 relative w-28 aspect-[9/16] rounded-xl overflow-hidden card-interactive group"
+                    data-cursor="view"
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                  >
+                    {media ? (
+                      <img
+                        src={media}
+                        alt={content.restaurant?.name || 'Featured'}
+                        className="absolute inset-0 w-full h-full object-cover img-zoom"
+                      />
+                    ) : (
+                      <div className={`absolute inset-0 bg-gradient-to-br ${cuisineGradients[idx % cuisineGradients.length]}`} />
+                    )}
 
-            {/* Scrim — top fade for wordmark + bottom fade for copy */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none" />
+                    {/* Dual scrim — top for avatar, bottom for label */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 pointer-events-none" />
 
-            {/* Top overline / wordmark */}
-            <div className="absolute top-0 left-0 right-0 px-6 pt-10 z-10 flex items-center justify-between">
-              <p className="text-[11px] tracking-[0.3em] uppercase text-white/80 font-medium">
-                Phoenix Foodie Map
-              </p>
-              <p className="text-[11px] tracking-[0.2em] uppercase text-[var(--color-accent-primary)] font-semibold">
-                Featured today
-              </p>
-            </div>
+                    {/* Creator avatar ring — top-left */}
+                    {creator && (
+                      <div className="absolute top-2 left-2 rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] to-amber-600">
+                        {creator.avatar_url ? (
+                          <img
+                            src={creator.avatar_url}
+                            alt={creator.display_name}
+                            className="w-7 h-7 rounded-full object-cover ring-2 ring-black"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-[10px] font-bold text-white">
+                            {creator.display_name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-            {/* Bottom content */}
-            <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 z-10">
-              {/* Creator chip */}
-              {heroContent.creator && (
-                <div className="flex items-center gap-2 mb-4">
-                  {heroContent.creator.avatar_url ? (
-                    <img
-                      src={heroContent.creator.avatar_url}
-                      alt={heroContent.creator.display_name}
-                      className="w-8 h-8 rounded-full object-cover ring-2 ring-[var(--color-accent-primary)]/80"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-[var(--color-accent-primary)]/80 flex items-center justify-center text-xs font-bold text-white">
-                      {heroContent.creator.display_name?.charAt(0) || '?'}
+                    {/* Play indicator for videos */}
+                    {isVideo && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 backdrop-blur flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white fill-current ml-0.5" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Bottom label */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2 z-10">
+                      <p className="text-[10px] font-semibold text-white line-clamp-2 leading-tight drop-shadow-md">
+                        {content.restaurant?.name || (content.caption ? content.caption.slice(0, 32) : 'Featured')}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-white/60 uppercase tracking-wider">
-                      Scouted by
-                    </span>
-                    <span className="text-sm font-semibold text-white">
-                      {heroContent.creator.display_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Headline — restaurant or caption */}
-              <h1 className="heading-display text-white text-4xl md:text-5xl leading-[1.05] mb-2 drop-shadow-lg">
-                {heroContent.restaurant?.name || "Phoenix's Best Bites"}
-              </h1>
-
-              {/* Supporting caption */}
-              {heroContent.caption && (
-                <p className="text-sm text-white/80 line-clamp-2 max-w-md mb-4 leading-relaxed">
-                  {heroContent.caption}
-                </p>
-              )}
-
-              {/* CTA */}
-              <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-accent-primary)] group-hover:gap-3 transition-all duration-300">
-                Open the feed
-                <span aria-hidden>→</span>
-              </div>
+                  </Link>
+                )
+              })}
             </div>
-          </Link>
-        ) : (
-          <div className="px-6 pt-12 pb-4">
-            <p className="text-[11px] tracking-[0.3em] uppercase text-white/60 font-medium mb-3">
-              Phoenix Foodie Map
-            </p>
-            <h1 className="heading-display text-gradient text-5xl md:text-6xl mb-4">
-              Discover Phoenix&apos;s Best Bites
-            </h1>
-            <p className="text-base font-normal text-[var(--color-text-secondary)] mb-4 leading-relaxed">
-              Explore the city&apos;s finest dining through trusted local creators
-            </p>
-            <div className="accent-line" />
           </div>
-        )}
-      </RevealSection>
+        </section>
+      )}
 
-      {/* MEET YOUR SCOUTS — featured creators row */}
+      {/* SCOUTS ROW — creators as identity anchors */}
       {featuredCreators.length > 0 && (
         <RevealSection delay={50}>
-          <div className="px-6 pt-10 pb-6">
-            <div className="flex items-baseline justify-between mb-5">
-              <h2 className="heading-display text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">
-                Your Phoenix food scouts
-              </h2>
+          <section className="px-4 pt-5 pb-4">
+            <div className="mb-3 flex items-center justify-between">
+              <Overline>Your food scouts</Overline>
               <Link
                 href="/search"
-                className="text-xs font-medium text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
               >
-                All creators →
+                All →
               </Link>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-2">
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
               {featuredCreators.map((creator) => (
                 <Link
                   key={creator.id}
@@ -243,17 +249,20 @@ export default function HomeScreen() {
                   data-cursor="view"
                 >
                   <div className="relative mb-2">
-                    {creator.avatar_url ? (
-                      <img
-                        src={creator.avatar_url}
-                        alt={creator.display_name}
-                        className="w-16 h-16 rounded-full object-cover ring-2 ring-[var(--color-border-subtle)] group-hover:ring-[var(--color-accent-primary)] transition-all duration-300"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-[var(--color-border-subtle)] group-hover:ring-[var(--color-accent-primary)] transition-all duration-300 flex items-center justify-center text-lg font-bold text-white">
-                        {creator.display_name?.charAt(0) || '?'}
-                      </div>
-                    )}
+                    {/* Gradient story-ring */}
+                    <div className="rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] via-orange-500 to-red-600 group-hover:scale-105 transition-transform duration-300">
+                      {creator.avatar_url ? (
+                        <img
+                          src={creator.avatar_url}
+                          alt={creator.display_name}
+                          className="w-16 h-16 rounded-full object-cover ring-2 ring-black"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-lg font-bold text-white">
+                          {creator.display_name?.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </div>
                     {creator.is_founding_creator && (
                       <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--color-accent-primary)] ring-2 ring-[var(--color-surface-primary)] flex items-center justify-center">
                         <span className="text-[9px] text-black font-bold">★</span>
@@ -271,50 +280,69 @@ export default function HomeScreen() {
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         </RevealSection>
       )}
 
-      {/* CUISINE GRID SECTION */}
-      <RevealSection delay={100}>
-        <div className="px-6 py-10">
-          <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-6">
-            What are you craving?
-          </h2>
+      {/* FEATURED NOW — hero carousel */}
+      {featuredContent.length > 0 && (
+        <RevealSection delay={75}>
+          <section className="pt-4 pb-5">
+            <div className="px-4 mb-3 flex items-center justify-between">
+              <Overline>Featured now</Overline>
+              <Link
+                href="/feed"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+              >
+                See all →
+              </Link>
+            </div>
 
-          {/* 2-column grid — cuisine photography with gradient fallback */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="snap-x-mandatory overflow-x-auto hide-scrollbar">
+              <div className="flex gap-3 px-4 w-fit">
+                {featuredContent.map((content) => (
+                  <div key={content.id} className="snap-start flex-shrink-0">
+                    <ContentCard content={content} variant="hero" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </RevealSection>
+      )}
+
+      {/* CRAVINGS — masonry cuisine grid */}
+      <RevealSection delay={100}>
+        <section className="px-3 pt-4 pb-5">
+          <div className="px-1 mb-3">
+            <Overline>Cravings</Overline>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 auto-rows-auto">
             {CUISINE_TYPES.map((cuisine, index) => {
               const image = cuisineImageMap[cuisine.value]
+              const layoutClass = CUISINE_LAYOUT[index % CUISINE_LAYOUT.length]
               return (
-                <Link key={cuisine.value} href={`/feed?cuisine=${cuisine.value}`}>
+                <Link
+                  key={cuisine.value}
+                  href={`/feed?cuisine=${cuisine.value}`}
+                  className={layoutClass}
+                >
                   <div
-                    className="
-                      card-interactive
-                      rounded-2xl overflow-hidden
-                      aspect-[3/2] max-h-40
-                      flex items-end
-                      cursor-pointer
-                      relative group
-                      bg-[var(--color-surface-card)]
-                    "
+                    className="relative w-full h-full card-interactive rounded-xl overflow-hidden group cursor-pointer bg-[var(--color-surface-card)]"
                     data-cursor="view"
                   >
                     {image ? (
-                      // Real cuisine photography
                       <img
                         src={image}
                         alt={cuisine.label}
                         className="absolute inset-0 w-full h-full object-cover img-zoom"
                       />
                     ) : (
-                      // Gradient + emoji fallback when no photo is available yet
                       <>
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-br ${cuisineGradients[index]}`}
-                        />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${cuisineGradients[index]}`} />
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-5xl opacity-25 group-hover:opacity-40 group-hover:scale-110 transition-all duration-500">
+                          <span className="text-4xl opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-500">
                             {cuisineEmojis[cuisine.label] || '🍽️'}
                           </span>
                         </div>
@@ -322,11 +350,11 @@ export default function HomeScreen() {
                     )}
 
                     {/* Bottom scrim for label legibility */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent pointer-events-none" />
 
                     {/* Label */}
-                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                      <h3 className="text-sm font-bold text-white drop-shadow-md">
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
+                      <h3 className="text-sm font-bold text-white drop-shadow-md leading-tight">
                         {cuisine.label}
                       </h3>
                     </div>
@@ -335,41 +363,31 @@ export default function HomeScreen() {
               )
             })}
           </div>
-        </div>
+        </section>
       </RevealSection>
 
-      {/* VIBE SECTION */}
-      <RevealSection delay={150}>
-        <div className="py-10">
-          <div className="px-6 mb-4">
-            <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-              Pick a vibe
-            </h2>
+      {/* VIBE CHECK — filter pills */}
+      <RevealSection delay={125}>
+        <section className="pt-4 pb-5">
+          <div className="px-4 mb-3">
+            <Overline>Vibe check</Overline>
           </div>
 
-          {/* Horizontal scrollable vibe pills */}
-          <div
-            ref={vibeScrollRef}
-            className="snap-x-mandatory overflow-x-auto hide-scrollbar px-6"
-          >
+          <div className="snap-x-mandatory overflow-x-auto hide-scrollbar px-4">
             <div className="flex gap-2 w-fit">
               {VIBE_TAGS.map((vibe) => (
                 <Link
                   key={vibe.value}
                   href={`/feed?vibe=${vibe.value}`}
-                  className={`
+                  className="
                     snap-center flex-shrink-0
                     px-4 py-2 rounded-full
                     text-sm font-medium
                     transition-all duration-300
                     block btn-press pill-glow
-                    ${
-                      selectedVibe === vibe.value
-                        ? 'bg-[var(--color-accent-primary)] text-black shadow-lg shadow-[var(--color-accent-primary)]/30'
-                        : 'glass text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]'
-                    }
-                  `}
-                  onClick={() => setSelectedVibe(vibe.value)}
+                    glass text-[var(--color-text-primary)]
+                    hover:bg-[var(--color-surface-elevated)]
+                  "
                   data-cursor="expand"
                 >
                   {vibe.label}
@@ -377,74 +395,49 @@ export default function HomeScreen() {
               ))}
             </div>
           </div>
-        </div>
-      </RevealSection>
-
-      {/* POPULAR DISHES SECTION */}
-      <RevealSection delay={200}>
-        <section className="px-6 py-10">
-          <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-6">
-            Dishes People Are Ordering
-          </h2>
-          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
-            {topDishes.map((dish, idx) => (
-              <Link href="/feed" key={dish.id}>
-                <div className="card-interactive w-40 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-glow)] transition-colors duration-300">
-                  <div className="relative w-full aspect-[4/3] overflow-hidden">
-                    {dish.thumbnail_url ? (
-                      <img
-                        src={dish.thumbnail_url}
-                        alt={dish.name}
-                        className="w-full h-full object-cover img-zoom"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-amber-900/80 to-orange-700/60 flex items-center justify-center">
-                        <span className="text-4xl opacity-40">🍽️</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
-                      {dish.name}
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1">
-                      {dish.feature_count} creator{dish.feature_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
         </section>
       </RevealSection>
 
-      {/* RECENTLY FEATURED SECTION */}
-      <RevealSection delay={250}>
-        <div className="py-10">
-          <div className="px-6 mb-6 flex items-baseline justify-between">
-            <h2 className="heading-display text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-              Recently Featured
-            </h2>
-            <Link href="/feed" className="text-xs font-medium text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors">
-              See all →
-            </Link>
-          </div>
+      {/* TRENDING DISHES */}
+      {topDishes.length > 0 && (
+        <RevealSection delay={150}>
+          <section className="pt-4 pb-5">
+            <div className="px-4 mb-3">
+              <Overline>Trending dishes</Overline>
+            </div>
 
-          {/* Horizontal carousel */}
-          <div className="snap-x-mandatory overflow-x-auto hide-scrollbar">
-            <div className="flex gap-4 px-6 w-fit">
-              {featuredContent.map((content) => (
-                <div
-                  key={content.id}
-                  className="snap-start flex-shrink-0"
-                >
-                  <ContentCard content={content} variant="hero" />
-                </div>
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 pb-2">
+              {topDishes.map((dish) => (
+                <Link href="/feed" key={dish.id}>
+                  <div className="card-interactive w-36 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--color-surface-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-glow)] transition-colors duration-300">
+                    <div className="relative w-full aspect-[4/3] overflow-hidden">
+                      {dish.thumbnail_url ? (
+                        <img
+                          src={dish.thumbnail_url}
+                          alt={dish.name}
+                          className="w-full h-full object-cover img-zoom"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-amber-900/80 to-orange-700/60 flex items-center justify-center">
+                          <span className="text-4xl opacity-40">🍽️</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                        {dish.name}
+                      </p>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">
+                        {dish.feature_count} creator{dish.feature_count !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
-          </div>
-        </div>
-      </RevealSection>
+          </section>
+        </RevealSection>
+      )}
 
       {/* Bottom padding for fixed bottom nav */}
       <div className="h-28" />
