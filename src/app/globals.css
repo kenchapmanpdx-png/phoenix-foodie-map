@@ -172,6 +172,28 @@ body::after {
   animation: save-fill 0.4s var(--ease-spring) forwards;
 }
 
+/* ─── Heart Burst (IG-style double-tap overlay) ─── */
+
+@keyframes heart-burst {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  20%  { opacity: 1; transform: scale(1.25) rotate(4deg); }
+  45%  { opacity: 1; transform: scale(0.95) rotate(-2deg); }
+  65%  { opacity: 0.95; transform: scale(1.05) rotate(1deg); }
+  100% { opacity: 0; transform: scale(1.45) rotate(0deg); }
+}
+
+.heart-burst {
+  animation: heart-burst 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-burst {
+    animation-duration: 0.2s;
+    animation-timing-function: ease-out;
+  }
+}
+
 /* ─── Skeleton Shimmer (smoother gradient sweep) ─── */
 
 @keyframes skeleton-shimmer {

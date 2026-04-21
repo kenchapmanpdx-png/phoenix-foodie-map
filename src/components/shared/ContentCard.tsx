@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { ContentWithRelations } from '@/types'
 import { useUserStore } from '@/store/user'
 import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
@@ -13,15 +14,38 @@ interface ContentCardProps {
   variant?: ContentCardVariant
 }
 
+// Compact count formatting: 942 → "942", 1234 → "1.2K", 1_500_000 → "1.5M"
+function formatCount(n: number | null | undefined): string {
+  if (!n || n <= 0) return ''
+  if (n < 1000) return String(n)
+  if (n < 100_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`
+  if (n < 1_000_000) return `${Math.floor(n / 1000)}K`
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+}
+
+// Double-tap-to-save window (ms). Single-tap navigation is deferred by this
+// amount so a second tap can be detected.
+const DOUBLE_TAP_MS = 260
+
 export default function ContentCard({ content, variant = 'grid' }: ContentCardProps) {
+  const router = useRouter()
   const toggleSaveContent = useUserStore((s) => s.toggleSaveContent)
   const isSaved = useUserStore((s) => s.savedContentIds.includes(content.id))
   const { position } = useGeolocation()
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [heartBurst, setHeartBurst] = useState(0) // increment = new burst animation cycle
   const cardRef = useRef<HTMLDivElement>(null)
+  const tapTimeoutRef = useRef<number | null>(null)
 
   const isVideo = content.content_type === 'video'
   const isCreatorPick = (content.restaurant.creator_count ?? 0) >= 3
+
+  const saveCount = content.save_count ?? 0
+  const viewCount = content.view_count ?? 0
+  const saveLabel = formatCount(saveCount)
+  const viewLabel = formatCount(viewCount)
+
+  const contentHref = `/content/${content.id}`
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const el = cardRef.current
@@ -60,6 +84,31 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
     }
   }
 
+  // Card click — defers single-tap navigation by DOUBLE_TAP_MS so a second
+  // tap in the window can trigger save + heart-burst instead. Right-click /
+  // middle-click / cmd-click still follow the Link's native href.
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only intercept plain left-clicks — let modified clicks (open-in-new-tab)
+    // pass through to the Link's native handling.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (tapTimeoutRef.current !== null) {
+      // Second tap within window → double-tap
+      clearTimeout(tapTimeoutRef.current)
+      tapTimeoutRef.current = null
+      if (!isSaved) toggleSaveContent(content.id)
+      setHeartBurst((n) => n + 1)
+    } else {
+      tapTimeoutRef.current = window.setTimeout(() => {
+        tapTimeoutRef.current = null
+        router.push(contentHref)
+      }, DOUBLE_TAP_MS)
+    }
+  }
+
   const distance = position
     ? getDistanceMiles(
         position.latitude,
@@ -69,15 +118,33 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
       )
     : null
 
+  /* Shared heart-burst overlay — rendered inside each variant */
+  const heartOverlay = heartBurst > 0 && (
+    <div
+      key={heartBurst}
+      className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+      aria-hidden
+    >
+      <svg
+        className="w-24 h-24 text-[var(--color-accent-primary)] drop-shadow-[0_0_24px_rgba(245,158,11,0.8)] heart-burst"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
+    </div>
+  )
+
   /* ────── Grid variant (compact 3:4) ────── */
   if (variant === 'grid') {
     return (
-      <Link href={`/content/${content.id}`}>
+      <Link href={contentHref} onClick={handleCardClick}>
         <div
           ref={cardRef}
           onMouseMove={handleMouseMove}
           className="card-interactive card-glow relative w-full rounded-xl overflow-hidden cursor-pointer group aspect-[3/4]"
         >
+          {heartOverlay}
           <div className="absolute inset-0 bg-[var(--color-surface-card)]">
             <div className="absolute inset-0 skeleton-shimmer" />
           </div>
@@ -162,6 +229,17 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
                   </span>
                 </>
               )}
+              {saveLabel && (
+                <>
+                  <span className="text-[10px] text-white/30">·</span>
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-white/70 font-medium">
+                    <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current" aria-hidden>
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {saveLabel}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -172,12 +250,13 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
   /* ────── Hero variant (carousel card) ────── */
   if (variant === 'hero') {
     return (
-      <Link href={`/content/${content.id}`}>
+      <Link href={contentHref} onClick={handleCardClick}>
         <div
           ref={cardRef}
           onMouseMove={handleMouseMove}
           className="card-interactive card-glow relative rounded-xl overflow-hidden cursor-pointer group w-[75vw] max-w-sm aspect-[4/5]"
         >
+          {heartOverlay}
           <div className="absolute inset-0 bg-[var(--color-surface-card)]">
             <div className="absolute inset-0 skeleton-shimmer" />
           </div>
@@ -236,9 +315,29 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
                   />
                 )}
               </div>
-              <span className="text-xs font-medium text-[var(--color-text-primary)] truncate">
+              <span className="text-xs font-medium text-[var(--color-text-primary)] truncate flex-1">
                 {content.creator.display_name}
               </span>
+              {(saveLabel || viewLabel) && (
+                <div className="flex items-center gap-2 text-[10px] text-white/70 font-medium flex-shrink-0">
+                  {isVideo && viewLabel && (
+                    <span className="inline-flex items-center gap-0.5">
+                      <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" aria-hidden>
+                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+                      </svg>
+                      {viewLabel}
+                    </span>
+                  )}
+                  {saveLabel && (
+                    <span className="inline-flex items-center gap-0.5">
+                      <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" aria-hidden>
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                      {saveLabel}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-1">
               {content.caption || 'Featured Item'}
@@ -269,13 +368,14 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
 
   /* ────── Full-width feature card ────── */
   return (
-    <Link href={`/content/${content.id}`}>
+    <Link href={contentHref} onClick={handleCardClick}>
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
         className="card-interactive card-glow relative w-full rounded-2xl overflow-hidden cursor-pointer group"
         style={{ height: 'clamp(320px, 50svh, 480px)' }}
       >
+        {heartOverlay}
         <div className="absolute inset-0 bg-[var(--color-surface-card)]">
           <div className="absolute inset-0 skeleton-shimmer" />
         </div>
@@ -392,7 +492,7 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
             {content.restaurant.name}
           </Link>
           <p className="text-xs text-white/60 line-clamp-1">{content.caption || 'Featured Item'}</p>
-          <div className="flex items-center gap-2 pt-0.5">
+          <div className="flex items-center gap-2 pt-0.5 flex-wrap">
             <div className="glass-light inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
               <svg className="w-3 h-3 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
@@ -403,6 +503,26 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
             </div>
             <span className="text-[10px] text-white/50">{content.restaurant.cuisine_types?.[0]}</span>
             <span className="text-[10px] text-white/50">{'$'.repeat(content.restaurant.price_range || 2)}</span>
+            {saveLabel && (
+              <div className="glass-light inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+                <svg className="w-3 h-3 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="text-[10px] text-white/90 font-medium">
+                  {saveLabel} saved
+                </span>
+              </div>
+            )}
+            {isVideo && viewLabel && (
+              <div className="glass-light inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+                <svg className="w-3 h-3 text-white/80" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+                </svg>
+                <span className="text-[10px] text-white/90 font-medium">
+                  {viewLabel} views
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

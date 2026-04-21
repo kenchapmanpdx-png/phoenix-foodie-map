@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { CUISINE_TYPES, VIBE_TAGS } from '@/lib/constants'
 import {
@@ -12,7 +12,7 @@ import { useUserStore } from '@/store/user'
 import { supabase } from '@/lib/supabase'
 import ContentCard from '@/components/shared/ContentCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
-import type { CuisineType } from '@/types'
+import type { ContentWithRelations, CuisineType } from '@/types'
 
 // Throttle `last_app_open` writes to at most once per hour per browser
 // to avoid a Supabase UPDATE on every tab switch / focus.
@@ -54,6 +54,127 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
     >
       {children}
     </div>
+  )
+}
+
+// Reels rail tile — autoplays video when in viewport (muted/loop/playsInline).
+// Falls back to a poster image for photo content or when reduced-motion is set.
+function ReelThumb({
+  content,
+  fallbackGradient,
+  index,
+}: {
+  content: ContentWithRelations
+  fallbackGradient: string
+  index: number
+}) {
+  const [inViewRef, inView] = useIntersectionObserver({
+    threshold: 0.5,
+    once: false,
+  })
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const isVideo = content.content_type === 'video'
+  const poster = content.thumbnail_url || undefined
+  const videoSrc = content.media_url || undefined
+
+  // Respect prefers-reduced-motion (read once per tile; fine as a one-shot)
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (inView && !reducedMotion) {
+      const p = v.play()
+      if (p && typeof p.catch === 'function') {
+        // Swallow AbortError / autoplay-denied — we still show the poster.
+        p.catch(() => {})
+      }
+    } else {
+      v.pause()
+    }
+  }, [inView, reducedMotion])
+
+  const creator = content.creator
+  const mediaFallback = content.thumbnail_url || content.media_url
+
+  return (
+    <Link
+      href="/feed"
+      className="flex-shrink-0 relative w-28 aspect-[9/16] rounded-xl overflow-hidden card-interactive group block"
+      data-cursor="view"
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
+      {/* In-view observer target — must be an inner div since Link forwards to <a> */}
+      <div ref={inViewRef} className="absolute inset-0">
+        {isVideo && videoSrc && !reducedMotion ? (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            poster={poster}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : mediaFallback ? (
+          <img
+            src={mediaFallback}
+            alt={content.restaurant?.name || 'Featured'}
+            className="absolute inset-0 w-full h-full object-cover img-zoom"
+          />
+        ) : (
+          <div className={`absolute inset-0 bg-gradient-to-br ${fallbackGradient}`} />
+        )}
+      </div>
+
+      {/* Dual scrim */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 pointer-events-none" />
+
+      {/* Creator avatar ring — top-left */}
+      {creator && (
+        <div className="absolute top-2 left-2 rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] to-amber-600">
+          {creator.avatar_url ? (
+            <img
+              src={creator.avatar_url}
+              alt={creator.display_name}
+              className="w-7 h-7 rounded-full object-cover ring-2 ring-black"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-[10px] font-bold text-white">
+              {creator.display_name?.charAt(0) || '?'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Video indicator — shows LIVE dot when playing, play chip otherwise */}
+      {isVideo && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur">
+          {inView && !reducedMotion ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[8px] font-bold text-white uppercase tracking-wide">Live</span>
+            </>
+          ) : (
+            <svg className="w-3 h-3 text-white fill-current ml-0.5" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </div>
+      )}
+
+      {/* Bottom label */}
+      <div className="absolute bottom-0 left-0 right-0 p-2 z-10">
+        <p className="text-[10px] font-semibold text-white line-clamp-2 leading-tight drop-shadow-md">
+          {content.restaurant?.name || (content.caption ? content.caption.slice(0, 32) : 'Featured')}
+        </p>
+      </div>
+    </Link>
   )
 }
 
@@ -161,66 +282,14 @@ export default function HomeScreen() {
         <section className="pt-3">
           <div className="overflow-x-auto hide-scrollbar">
             <div className="flex gap-2 px-3 pb-2 w-fit">
-              {reelsContent.map((content, idx) => {
-                const media = content.thumbnail_url || content.media_url
-                const creator = content.creator
-                const isVideo = content.content_type === 'video'
-                return (
-                  <Link
-                    key={content.id}
-                    href="/feed"
-                    className="flex-shrink-0 relative w-28 aspect-[9/16] rounded-xl overflow-hidden card-interactive group"
-                    data-cursor="view"
-                    style={{ animationDelay: `${idx * 40}ms` }}
-                  >
-                    {media ? (
-                      <img
-                        src={media}
-                        alt={content.restaurant?.name || 'Featured'}
-                        className="absolute inset-0 w-full h-full object-cover img-zoom"
-                      />
-                    ) : (
-                      <div className={`absolute inset-0 bg-gradient-to-br ${cuisineGradients[idx % cuisineGradients.length]}`} />
-                    )}
-
-                    {/* Dual scrim — top for avatar, bottom for label */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 pointer-events-none" />
-
-                    {/* Creator avatar ring — top-left */}
-                    {creator && (
-                      <div className="absolute top-2 left-2 rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] to-amber-600">
-                        {creator.avatar_url ? (
-                          <img
-                            src={creator.avatar_url}
-                            alt={creator.display_name}
-                            className="w-7 h-7 rounded-full object-cover ring-2 ring-black"
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-[10px] font-bold text-white">
-                            {creator.display_name?.charAt(0) || '?'}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Play indicator for videos */}
-                    {isVideo && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 backdrop-blur flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white fill-current ml-0.5" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Bottom label */}
-                    <div className="absolute bottom-0 left-0 right-0 p-2 z-10">
-                      <p className="text-[10px] font-semibold text-white line-clamp-2 leading-tight drop-shadow-md">
-                        {content.restaurant?.name || (content.caption ? content.caption.slice(0, 32) : 'Featured')}
-                      </p>
-                    </div>
-                  </Link>
-                )
-              })}
+              {reelsContent.map((content, idx) => (
+                <ReelThumb
+                  key={content.id}
+                  content={content}
+                  fallbackGradient={cuisineGradients[idx % cuisineGradients.length]}
+                  index={idx}
+                />
+              ))}
             </div>
           </div>
         </section>
