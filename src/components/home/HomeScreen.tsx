@@ -12,7 +12,7 @@ import { useUserStore } from '@/store/user'
 import { supabase } from '@/lib/supabase'
 import ContentCard from '@/components/shared/ContentCard'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
-import type { ContentWithRelations, CuisineType } from '@/types'
+import type { ContentWithRelations } from '@/types'
 
 // Throttle `last_app_open` writes to at most once per hour per browser
 // to avoid a Supabase UPDATE on every tab switch / focus.
@@ -26,13 +26,13 @@ const CUISINE_FALLBACK_IMAGES: Record<string, string> = {
   Mexican:
     'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&w=1200&q=80',
   American:
-    'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=1200&q=80',
   Italian:
     'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?auto=format&fit=crop&w=1200&q=80',
   Asian:
     'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=1200&q=80',
   Seafood:
-    'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1200&q=80',
   Pizza:
     'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=1200&q=80',
   'BBQ/Comfort':
@@ -277,26 +277,21 @@ export default function HomeScreen() {
     [dishes]
   )
 
-  // Cuisine-specific photography. For each cuisine, find the first content
-  // item whose restaurant includes that cuisine and has media. When a cuisine
-  // has no creator content yet, fall back to a curated Unsplash photo so the
-  // Cravings grid stays fully photographed.
+  // Cuisine-specific photography. The Cravings grid is a visual cuisine
+  // *index*, not a "what's new" feed — users expect the Pizza tile to look
+  // like pizza. Seeded creator content doesn't reliably map 1:1 to a cuisine
+  // (fusion menus, tasting menus, restaurant shots), so we use the curated
+  // Unsplash set unconditionally. Freshness lives in the Reels rail and
+  // Trending Dishes row, not here.
   const cuisineImageMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const cuisine of CUISINE_TYPES) {
-      const match = allContent.find(
-        (c) =>
-          c.restaurant?.cuisine_types?.includes(cuisine.value as CuisineType) &&
-          (c.thumbnail_url || c.media_url)
-      )
-      if (match) {
-        map[cuisine.value] = (match.thumbnail_url || match.media_url) as string
-      } else if (CUISINE_FALLBACK_IMAGES[cuisine.value]) {
+      if (CUISINE_FALLBACK_IMAGES[cuisine.value]) {
         map[cuisine.value] = CUISINE_FALLBACK_IMAGES[cuisine.value]
       }
     }
     return map
-  }, [allContent])
+  }, [])
 
   // Featured "scouts" — founding creators first, fall back to top 4 creators.
   const featuredCreators = useMemo(() => {
@@ -307,6 +302,45 @@ export default function HomeScreen() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
+      {/* BRAND HEADER — sticky, translucent, sits above reels */}
+      <header className="sticky top-0 z-30 glass-heavy border-b border-white/5">
+        <div className="flex items-center justify-between px-4 h-12">
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Phoenix Foodie Map — home">
+            {/* Sun/bite mark glyph */}
+            <span className="relative w-7 h-7 flex items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] via-orange-500 to-red-600 opacity-90" />
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[var(--color-surface-primary)]" />
+            </span>
+            <span className="font-black text-[15px] tracking-tight text-[var(--color-text-primary)] leading-none">
+              phx<span className="text-[var(--color-accent-primary)]">.</span>foodie
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-1">
+            <Link
+              href="/search"
+              aria-label="Search"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            >
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </Link>
+            <Link
+              href="/map"
+              aria-label="Map"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            >
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </header>
+
       {/* REELS RAIL — flush to top, TikTok-style pixel-0 content */}
       {reelsContent.length > 0 && (
         <section className="pt-3">

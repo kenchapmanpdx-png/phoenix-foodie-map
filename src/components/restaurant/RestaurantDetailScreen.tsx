@@ -123,9 +123,16 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
 
   if (loading) return <RestaurantDetailSkeleton />
 
+  // Best hero image: highest-engagement content for this restaurant,
+  // fall back to first dish thumbnail, then a warm gradient.
+  const heroBest = [...restaurantContent]
+    .sort((a, b) => (b.view_count + b.save_count) - (a.view_count + a.save_count))[0]
+  const heroImage =
+    heroBest?.thumbnail_url || heroBest?.media_url || dishData[0]?.bestThumbnail || null
+
   return (
     <div className="min-h-screen bg-surface-primary">
-      {/* Back button */}
+      {/* Floating back / save — always on top of the hero */}
       <button
         onClick={() => {
           if (window.history.length > 1) {
@@ -134,25 +141,71 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
             window.location.href = '/feed'
           }
         }}
-        className="fixed top-4 left-4 z-40 p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
+        aria-label="Back"
+        className="fixed top-4 left-4 z-40 w-10 h-10 rounded-full bg-black/55 backdrop-blur flex items-center justify-center hover:bg-black/75 transition-colors"
       >
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        onClick={handleSave}
+        aria-label={isSaved ? 'Saved' : 'Save'}
+        className={`fixed top-4 right-4 z-40 w-10 h-10 rounded-full backdrop-blur flex items-center justify-center transition-colors ${
+          isSaved ? 'bg-[var(--color-accent-primary)] text-black' : 'bg-black/55 text-white hover:bg-black/75'
+        }`}
+      >
+        <svg className="w-5 h-5" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
         </svg>
       </button>
 
-      {/* Header hero */}
-      <div className="relative h-64 bg-gradient-to-br from-amber-900/20 to-orange-900/20">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center px-4">
-            <h1 className="text-4xl font-bold text-text-primary mb-2">{restaurant.name}</h1>
-            <div className="flex items-center justify-center gap-2 text-sm text-text-secondary">
-              <span>{restaurant.cuisine_types.join(' · ')}</span>
-              <span>·</span>
-              <span>{restaurant.neighborhood}</span>
-              <span>·</span>
-              <span>{priceDisplay}</span>
-            </div>
+      {/* Header hero — full-bleed photo with scrim + overlaid identity block */}
+      <div className="relative h-[360px] overflow-hidden">
+        {heroImage ? (
+          <img
+            src={heroImage}
+            alt={restaurant.name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-orange-800 to-red-800" />
+        )}
+
+        {/* Top scrim — fades back button onto any photo */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+        {/* Bottom scrim — legibility for identity block */}
+        <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-black via-black/70 via-40% to-transparent pointer-events-none" />
+
+        {/* Identity block — bottom overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 z-10">
+          {/* Status pill */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold backdrop-blur ${
+              isOpen ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+              {isOpen ? 'Open now' : 'Closed'}
+            </span>
+            {restaurantContent.length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-white/90 bg-white/10 ring-1 ring-white/15 backdrop-blur">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                {restaurantContent.length} creator post{restaurantContent.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-[28px] font-bold text-white leading-tight drop-shadow-lg">
+            {restaurant.name}
+          </h1>
+          <div className="mt-1 flex items-center gap-1.5 text-sm text-white/80 drop-shadow">
+            <span className="font-medium">{restaurant.cuisine_types.slice(0, 2).join(' · ')}</span>
+            <span className="text-white/40">·</span>
+            <span>{restaurant.neighborhood}</span>
+            <span className="text-white/40">·</span>
+            <span className="font-semibold text-[var(--color-accent-primary)]">{priceDisplay}</span>
           </div>
         </div>
       </div>

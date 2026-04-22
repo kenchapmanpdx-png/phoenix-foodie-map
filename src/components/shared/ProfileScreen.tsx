@@ -30,23 +30,94 @@ export default function ProfileScreen() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen bg-[var(--color-surface-primary)] pb-20">
-        <div className="px-4 pt-6 pb-4">
-          <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Profile</h1>
+      <div className="min-h-screen bg-[var(--color-surface-primary)] pb-24 overflow-hidden">
+        {/* HERO — ambient gradient + blurred food-photography accent */}
+        <div className="relative px-5 pt-10 pb-6">
+          {/* Glow blobs */}
+          <div
+            className="absolute top-8 -left-20 w-72 h-72 rounded-full opacity-40 blur-3xl pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.55), transparent 60%)' }}
+            aria-hidden
+          />
+          <div
+            className="absolute top-32 -right-24 w-80 h-80 rounded-full opacity-30 blur-3xl pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.5), transparent 60%)' }}
+            aria-hidden
+          />
+
+          <div className="relative">
+            <p className="text-[11px] font-semibold tracking-[0.3em] uppercase text-[var(--color-accent-primary)] mb-3 flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+              Phoenix foodie map
+            </p>
+            <h1 className="text-[34px] leading-[1.05] font-bold text-[var(--color-text-primary)] tracking-tight">
+              Eat like a<br />
+              <span className="italic bg-gradient-to-r from-[var(--color-accent-primary)] via-orange-400 to-red-500 bg-clip-text text-transparent">
+                local scout.
+              </span>
+            </h1>
+            <p className="text-[15px] text-[var(--color-text-secondary)] mt-3 leading-relaxed max-w-[28ch]">
+              Your saved bites, your scouts, your map. Sign in to make it yours.
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-3 px-4 py-8">
-          <Link href="/auth">
-            <button className="w-full px-6 py-3 bg-[var(--color-accent-primary)] text-white rounded-lg font-semibold hover:bg-[var(--color-accent-primary)]/90 transition-colors">
-              Sign In
+        {/* VALUE PROPS — three concrete benefits */}
+        <div className="px-5 space-y-3">
+          <ValueRow
+            icon={
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            }
+            title="Save the places you'll go back to"
+            body="Build collections across dates, date-nights, brunch-spots, and post-hike lunch."
+          />
+          <ValueRow
+            icon={
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+              </svg>
+            }
+            title="Follow the scouts you trust"
+            body="The valley's best food creators, ranked by the dishes you actually cared about."
+          />
+          <ValueRow
+            icon={
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+            }
+            title="See what's open right now"
+            body="Tuned for Phoenix — filter by neighborhood, vibe, and what the city's eating tonight."
+          />
+        </div>
+
+        {/* CTA STACK */}
+        <div className="px-5 mt-7 space-y-3">
+          <Link href="/auth" className="block">
+            <button className="w-full h-12 bg-gradient-to-r from-[var(--color-accent-primary)] via-orange-500 to-red-500 text-black font-bold rounded-xl hover:brightness-110 active:scale-[0.99] transition-all shadow-lg shadow-[var(--color-accent-primary)]/20">
+              Get started — it's free
             </button>
           </Link>
-          <Link href="/auth">
-            <button className="w-full px-6 py-3 bg-[var(--color-surface-card)] text-[var(--color-text-primary)] rounded-lg font-semibold hover:bg-[var(--color-surface-card-hover)] transition-colors border border-[var(--color-surface-border)]">
-              Create Account
+          <Link href="/auth" className="block">
+            <button className="w-full h-12 bg-transparent text-[var(--color-text-primary)] font-semibold rounded-xl border border-white/15 hover:bg-white/5 active:scale-[0.99] transition-all">
+              I already have an account
             </button>
+          </Link>
+          <Link href="/" className="block text-center">
+            <span className="text-[13px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors">
+              Keep browsing without an account →
+            </span>
           </Link>
         </div>
+
+        {/* Social-proof microcopy */}
+        <p className="text-center text-[11px] text-[var(--color-text-tertiary)] mt-8 px-5 leading-relaxed">
+          Built in Phoenix. No algorithms, no ads — just scouts eating well.
+        </p>
       </div>
     )
   }
@@ -196,6 +267,29 @@ export default function ProfileScreen() {
         >
           Log Out
         </button>
+      </div>
+    </div>
+  )
+}
+
+// Value-prop row used on the logged-out pitch.
+function ValueRow({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode
+  title: string
+  body: string
+}) {
+  return (
+    <div className="flex items-start gap-3 p-4 rounded-2xl bg-[var(--color-surface-card)]/60 border border-white/5 backdrop-blur-sm">
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent-primary)]/20 to-red-500/10 flex items-center justify-center text-[var(--color-accent-primary)] ring-1 ring-[var(--color-accent-primary)]/20">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-[var(--color-text-primary)] leading-tight">{title}</p>
+        <p className="text-[13px] text-[var(--color-text-secondary)] leading-snug mt-1">{body}</p>
       </div>
     </div>
   )

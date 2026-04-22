@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useFiltersStore } from '@/store/filters'
 import { useContentWithRelations } from '@/hooks/useSupabaseData'
 import { getVibeTimeScore } from '@/lib/utils'
@@ -64,6 +65,40 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
 
   return (
     <div className="h-screen bg-[var(--color-surface-primary)] flex flex-col">
+      {/* Brand title bar */}
+      <header className="flex-shrink-0 glass-heavy border-b border-white/5">
+        <div className="flex items-center justify-between px-4 h-12">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+              The Feed
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/search"
+              aria-label="Search"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            >
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </Link>
+            <Link
+              href="/map"
+              aria-label="View on map"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            >
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </header>
+
       {/* Filter bar */}
       <FilterBar />
 

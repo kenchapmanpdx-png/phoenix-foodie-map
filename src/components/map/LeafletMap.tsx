@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Restaurant } from '@/types'
 import { DEFAULT_CENTER } from '@/lib/constants'
+import { isOpenNow } from '@/lib/utils'
 
 interface LeafletMapProps {
   restaurants: Restaurant[]
@@ -10,21 +11,48 @@ interface LeafletMapProps {
   onPinTap: (restaurant: Restaurant) => void
 }
 
-// Cuisine-based gradient colors matching RestaurantPin blueprint
+// Cuisine → emoji. Matches RestaurantPin blueprint for consistency.
+const CUISINE_EMOJI: Record<string, string> = {
+  Italian: '🍝',
+  Japanese: '🍱',
+  Mexican: '🌮',
+  Thai: '🥘',
+  Indian: '🍛',
+  Chinese: '🥡',
+  Vietnamese: '🍲',
+  Korean: '🍜',
+  Mediterranean: '🫒',
+  American: '🍔',
+  Pizza: '🍕',
+  Seafood: '🦞',
+  'BBQ/Comfort': '🍖',
+  Brunch: '🥞',
+  Healthy: '🥗',
+  'Dessert/Coffee': '☕',
+  Asian: '🥢',
+}
+
 function getGradientColors(cuisineType: string): [string, string] {
   const gradients: Record<string, [string, string]> = {
-    Italian: ['#EF4444', '#DC2626'],
-    Japanese: ['#EC4899', '#BE185D'],
-    Mexican: ['#F59E0B', '#D97706'],
-    Thai: ['#8B5CF6', '#6D28D9'],
-    Indian: ['#F97316', '#C2410C'],
-    Chinese: ['#EF4444', '#991B1B'],
-    Vietnamese: ['#10B981', '#047857'],
-    Korean: ['#F59E0B', '#EA580C'],
-    Mediterranean: ['#3B82F6', '#1E40AF'],
-    American: ['#64748B', '#334155'],
+    Italian: ['#EF4444', '#B91C1C'],
+    Japanese: ['#EC4899', '#9D174D'],
+    Mexican: ['#F59E0B', '#B45309'],
+    Thai: ['#8B5CF6', '#5B21B6'],
+    Indian: ['#F97316', '#9A3412'],
+    Chinese: ['#DC2626', '#7F1D1D'],
+    Vietnamese: ['#10B981', '#065F46'],
+    Korean: ['#F59E0B', '#C2410C'],
+    Mediterranean: ['#3B82F6', '#1E3A8A'],
+    American: ['#64748B', '#1E293B'],
+    Pizza: ['#EF4444', '#991B1B'],
+    Seafood: ['#06B6D4', '#0E7490'],
+    'BBQ/Comfort': ['#B45309', '#78350F'],
+    Brunch: ['#F59E0B', '#D97706'],
+    Healthy: ['#22C55E', '#15803D'],
+    'Dessert/Coffee': ['#A855F7', '#6B21A8'],
+    Asian: ['#EF4444', '#991B1B'],
   }
-  return gradients[cuisineType] || ['#F59E0B', '#D97706']
+  return gradients[cuisineType] || ['#F59E0B', '#B45309']
 }
 
 export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }: LeafletMapProps) {
@@ -42,26 +70,60 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
 
     const style = document.createElement('style')
     style.textContent = `
-      @keyframes pin-scale-bounce {
-        0% { transform: scale(0); opacity: 0; }
-        70% { transform: scale(1.2); opacity: 1; }
-        100% { transform: scale(1); opacity: 1; }
+      @keyframes pfm-pin-drop {
+        0%   { transform: translateY(-14px) scale(0.4); opacity: 0; }
+        70%  { transform: translateY(2px) scale(1.08); opacity: 1; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
       }
-      @keyframes pulse-ring {
-        0% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(2); opacity: 0; }
+      @keyframes pfm-pin-pulse {
+        0%   { transform: scale(1); opacity: 0.9; }
+        100% { transform: scale(1.9); opacity: 0; }
       }
-      .leaflet-pin-enter {
-        animation: pin-scale-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      .pfm-pin {
+        position: relative;
+        transform-origin: bottom center;
+        animation: pfm-pin-drop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         opacity: 0;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.55));
+        transition: transform 160ms ease;
+        cursor: pointer;
       }
-      .leaflet-pin-selected::after {
-        content: '';
+      .pfm-pin:hover,
+      .pfm-pin.is-selected {
+        transform: translateY(-2px) scale(1.08);
+      }
+      .pfm-pin .pfm-emoji {
         position: absolute;
-        inset: -4px;
-        border-radius: 50%;
-        border: 2px solid #F59E0B;
-        animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 17px;
+        line-height: 1;
+        user-select: none;
+        pointer-events: none;
+      }
+      .pfm-pin .pfm-status {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.92);
+      }
+      .pfm-pin .pfm-status.open   { background: #10B981; }
+      .pfm-pin .pfm-status.closed { background: #EF4444; }
+      .pfm-pin.is-selected .pfm-ring {
+        position: absolute;
+        top: 6.5px;
+        left: 50%;
+        transform-origin: center;
+        transform: translateX(-50%);
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        border: 2px solid rgba(255,255,255,0.85);
+        animation: pfm-pin-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         pointer-events: none;
       }
       .custom-pin { background: none !important; border: none !important; }
@@ -123,36 +185,44 @@ export default function LeafletMap({ restaurants, selectedRestaurant, onPinTap }
 
     restaurants.forEach((restaurant, index) => {
       const isSelected = selectedRestaurant?.id === restaurant.id
-      const [color1, color2] = getGradientColors(restaurant.cuisine_types[0])
-      const staggerDelay = index * 40
-      const size = isSelected ? 44 : 36
+      const cuisine = restaurant.cuisine_types[0] || ''
+      const [color1, color2] = getGradientColors(cuisine)
+      const emoji = CUISINE_EMOJI[cuisine] || '🍽️'
+      const open = isOpenNow(restaurant.hours)
+      const staggerDelay = index * 30
+      // SVG size (teardrop is 40x50)
+      const w = 40
+      const h = 50
+      const gradId = `pfm-pin-${restaurant.id}`
+
+      const html = `
+        <div class="pfm-pin ${isSelected ? 'is-selected' : ''}" style="width:${w}px;height:${h}px;animation-delay:${staggerDelay}ms;">
+          <svg width="${w}" height="${h}" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
+            <defs>
+              <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${color1}" />
+                <stop offset="100%" stop-color="${color2}" />
+              </linearGradient>
+            </defs>
+            <path d="M20 1.5a17 17 0 0 1 17 17c0 9.5-7.5 17.5-17 29.5-9.5-12-17-20-17-29.5a17 17 0 0 1 17-17z"
+              fill="url(#${gradId})"
+              stroke="${isSelected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)'}"
+              stroke-width="${isSelected ? 2 : 1}" />
+            <circle cx="20" cy="18.5" r="12" fill="rgba(255,255,255,0.94)" />
+          </svg>
+          <span class="pfm-emoji">${emoji}</span>
+          <span class="pfm-status ${open ? 'open' : 'closed'}"></span>
+          ${isSelected ? '<span class="pfm-ring"></span>' : ''}
+        </div>
+      `
 
       const icon = L.divIcon({
         className: 'custom-pin',
-        html: `<div class="leaflet-pin-enter ${isSelected ? 'leaflet-pin-selected' : ''}" style="
-          position: relative;
-          width: ${size}px;
-          height: ${size}px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, ${color1}, ${color2});
-          border: 2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.3)'};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-          cursor: pointer;
-          animation-delay: ${staggerDelay}ms;
-          transition: transform 150ms ease, box-shadow 150ms ease;
-        ">
-          <span style="
-            font-weight: 700;
-            font-size: ${isSelected ? '16px' : '14px'};
-            color: #fff;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-          ">${restaurant.name[0]}</span>
-        </div>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
+        html,
+        iconSize: [w, h],
+        // Anchor at the tip of the teardrop (bottom center) so the pin
+        // "points" at the actual coordinate rather than floating above it.
+        iconAnchor: [w / 2, h - 2],
       })
 
       const marker = L.marker([restaurant.latitude, restaurant.longitude], { icon })
