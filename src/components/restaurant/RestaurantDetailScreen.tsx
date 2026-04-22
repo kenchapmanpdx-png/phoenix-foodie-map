@@ -22,6 +22,24 @@ interface DishWithCreators {
   bestThumbnail: string | null
 }
 
+// Convert "17:00" / "9:30" to "5:00 PM" / "9:30 AM". Falls back to the raw
+// input if we can't parse it, so malformed data doesn't blank the hours row.
+function formatTime12h(hhmm: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(hhmm)
+  if (!match) return hhmm
+  const h = Number(match[1])
+  const m = Number(match[2])
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm
+  const period = h >= 12 ? 'PM' : 'AM'
+  const hour12 = ((h + 11) % 12) + 1
+  const mm = m === 0 ? '' : `:${match[2]}`
+  return `${hour12}${mm} ${period}`
+}
+
+function formatHoursRange(open: string, close: string): string {
+  return `${formatTime12h(open)} – ${formatTime12h(close)}`
+}
+
 export default function RestaurantDetailScreen({ restaurant }: Props) {
   const [expandHours, setExpandHours] = useState(false)
   const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
@@ -196,7 +214,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           }
         }}
         aria-label="Back"
-        className="fixed top-4 left-4 z-40 w-10 h-10 rounded-full bg-black/55 backdrop-blur flex items-center justify-center hover:bg-black/75 transition-colors"
+        className="fixed top-4 left-4 z-40 w-10 h-10 rounded-full bg-black/55 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-black/75 transition-colors"
       >
         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
@@ -205,8 +223,10 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
       <button
         onClick={handleSave}
         aria-label={isSaved ? 'Saved' : 'Save'}
-        className={`fixed top-4 right-4 z-40 w-10 h-10 rounded-full backdrop-blur flex items-center justify-center transition-colors ${
-          isSaved ? 'bg-[var(--color-accent-primary)] text-black' : 'bg-black/55 text-white hover:bg-black/75'
+        className={`fixed top-4 right-4 z-40 w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-colors ${
+          isSaved
+            ? 'bg-[var(--color-accent-primary)] text-black border-transparent'
+            : 'bg-black/55 text-white hover:bg-black/75 border-white/10'
         }`}
       >
         <svg className="w-5 h-5" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
@@ -289,7 +309,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
           </span>
           {todayHours.length > 0 && (
             <span className="text-sm text-text-secondary">
-              {todayHours.map((p) => `${p.open}–${p.close}`).join(', ')}
+              {todayHours.map((p) => formatHoursRange(p.open, p.close)).join(', ')}
             </span>
           )}
           <button
@@ -308,7 +328,7 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
                 <span>
                   {!periods || periods.length === 0
                     ? 'Closed'
-                    : periods.map((p) => `${p.open}–${p.close}`).join(', ')}
+                    : periods.map((p) => formatHoursRange(p.open, p.close)).join(', ')}
                 </span>
               </div>
             ))}
@@ -355,24 +375,6 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
               Call
             </a>
           </div>
-          <button
-            onClick={handleSave}
-            className={`w-full font-medium py-2 rounded-lg text-sm transition-colors border border-surface-light/20 flex items-center justify-center gap-2 ${
-              isSaved
-                ? 'bg-accent-primary/20 text-accent-primary'
-                : 'bg-surface-card hover:bg-surface-light/10 text-text-primary'
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              fill={isSaved ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-            </svg>
-            {isSaved ? 'Saved' : 'Save'}
-          </button>
         </div>
 
         {/* ─── SECTION 1: Dish Catalog ─── */}

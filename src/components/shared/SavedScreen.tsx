@@ -4,27 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useUserStore } from '@/store/user'
 import { useContentWithRelations, useRestaurants } from '@/hooks/useSupabaseData'
-import type { ContentWithRelations, Restaurant } from '@/types'
-
-interface Collection {
-  id: string
-  name: string
-  count: number
-}
-
-const DEFAULT_COLLECTIONS: Collection[] = [
-  { id: 'date-night', name: 'Date Night Spots', count: 0 },
-  { id: 'taco-tour', name: 'Taco Tour', count: 0 },
-  { id: 'brunch', name: 'Brunch', count: 0 },
-  { id: 'worth-drive', name: 'Worth The Drive', count: 0 },
-]
 
 export default function SavedScreen() {
   const [activeTab, setActiveTab] = useState<'content' | 'restaurants'>('content')
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
   const { savedContentIds, savedRestaurantIds } = useUserStore()
-  const { content: allContent, loading: contentLoading } = useContentWithRelations()
-  const { restaurants: allRestaurants, loading: restaurantsLoading } = useRestaurants()
+  const { content: allContent } = useContentWithRelations()
+  const { restaurants: allRestaurants } = useRestaurants()
 
   // Get saved content
   const savedContent = allContent.filter((c) => savedContentIds.includes(c.id)).sort(
@@ -40,29 +25,19 @@ export default function SavedScreen() {
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)] pb-20">
       {/* Header */}
-      <div className="px-4 pt-6 pb-4 border-b border-[var(--color-surface-border)]">
-        <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">Saved</h1>
-      </div>
-
-      {/* Collections Carousel */}
-      <div className="px-4 py-4 border-b border-[var(--color-surface-border)]">
-        <div className="overflow-x-auto hide-scrollbar">
-          <div className="flex gap-3 w-fit">
-            {DEFAULT_COLLECTIONS.map((collection) => (
-              <button
-                key={collection.id}
-                onClick={() => setSelectedCollection(selectedCollection === collection.id ? null : collection.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  selectedCollection === collection.id
-                    ? 'bg-[var(--color-accent-primary)] text-white'
-                    : 'bg-[var(--color-surface-card)] text-[var(--color-text-primary)]'
-                }`}
-              >
-                {collection.name}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="px-4 pt-6 pb-5 border-b border-[var(--color-surface-border)]">
+        <span className="text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 flex items-center gap-2 mb-2">
+          <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+          Saved
+        </span>
+        <h1 className="font-display text-3xl font-bold text-[var(--color-text-primary)] leading-tight">
+          Your flavor bookmarks
+        </h1>
+        <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
+          {savedContentIds.length + savedRestaurantIds.length > 0
+            ? `${savedContentIds.length} post${savedContentIds.length === 1 ? '' : 's'} · ${savedRestaurantIds.length} spot${savedRestaurantIds.length === 1 ? '' : 's'}`
+            : 'Bookmark dishes and spots to build your Phoenix hitlist.'}
+        </p>
       </div>
 
       {/* Tabs */}
@@ -99,9 +74,9 @@ export default function SavedScreen() {
               <p className="text-sm text-[var(--color-text-secondary)]">Bookmark dishes and restaurants you want to try</p>
               <Link
                 href="/feed"
-                className="inline-block mt-6 px-6 py-2 bg-[var(--color-accent-primary)] text-white rounded-lg font-semibold"
+                className="inline-flex items-center justify-center mt-6 px-6 h-11 rounded-full bg-gradient-to-r from-[var(--color-accent-primary)] to-red-500 text-white text-sm font-semibold tracking-wide shadow-lg shadow-orange-500/20 active:scale-95 transition"
               >
-                Explore Content
+                Explore the feed
               </Link>
             </div>
           ) : (
@@ -144,9 +119,9 @@ export default function SavedScreen() {
               <p className="text-sm text-[var(--color-text-secondary)]">Bookmark restaurants to keep track of places to visit</p>
               <Link
                 href="/map"
-                className="inline-block mt-6 px-6 py-2 bg-[var(--color-accent-primary)] text-white rounded-lg font-semibold"
+                className="inline-flex items-center justify-center mt-6 px-6 h-11 rounded-full bg-gradient-to-r from-[var(--color-accent-primary)] to-red-500 text-white text-sm font-semibold tracking-wide shadow-lg shadow-orange-500/20 active:scale-95 transition"
               >
-                Explore Map
+                Open the map
               </Link>
             </div>
           ) : (

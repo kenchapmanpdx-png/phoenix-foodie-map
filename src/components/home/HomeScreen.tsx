@@ -153,19 +153,13 @@ function ReelThumb({
         </div>
       )}
 
-      {/* Video indicator — shows LIVE dot when playing, play chip otherwise */}
+      {/* Video indicator — subtle play chip; no fake "LIVE" badge */}
       {isVideo && (
         <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur">
-          {inView && !reducedMotion ? (
-            <>
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[8px] font-bold text-white uppercase tracking-wide">Live</span>
-            </>
-          ) : (
-            <svg className="w-3 h-3 text-white fill-current ml-0.5" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          )}
+          <svg className="w-3 h-3 text-white fill-current ml-0.5" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span className="text-[8px] font-bold text-white/90 uppercase tracking-wide">Reel</span>
         </div>
       )}
 
@@ -387,7 +381,7 @@ export default function HomeScreen() {
                 <Link
                   key={creator.id}
                   href={`/creator/${creator.slug || creator.id}`}
-                  className="flex-shrink-0 flex flex-col items-center w-20 group"
+                  className="flex-shrink-0 flex flex-col items-center w-24 group"
                   data-cursor="view"
                 >
                   <div className="relative mb-2">
@@ -411,11 +405,11 @@ export default function HomeScreen() {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full">
+                  <p className="text-[11px] font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full leading-tight">
                     {creator.display_name}
                   </p>
                   {scoutLabels[idx] && (
-                    <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-1 w-full mt-0.5">
+                    <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-2 w-full mt-0.5 leading-tight">
                       {scoutLabels[idx]}
                     </p>
                   )}

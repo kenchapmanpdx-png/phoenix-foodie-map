@@ -94,9 +94,10 @@ export default function FilterBar() {
               })}
               <button
                 onClick={() => setIsFilterSheetOpen(true)}
-                className="px-3 py-1.5 text-sm font-medium text-[var(--color-accent-primary)] hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+                aria-label="Add filter"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-[var(--color-accent-primary)] hover:bg-white/10 rounded-full border border-dashed border-[var(--color-accent-primary)]/40 transition-colors flex-shrink-0"
               >
-                +
+                <span className="text-base leading-none">+</span> Add filter
               </button>
             </>
           ) : (

@@ -120,7 +120,9 @@ export default function MapScreen({ initialCuisine, initialVibe }: MapScreenProp
             </svg>
             <div>
               <p className="text-sm font-medium text-[var(--color-text-primary)]">Phoenix</p>
-              <p className="text-xs text-[var(--color-text-secondary)]">{DEFAULT_CENTER.latitude.toFixed(2)}, {DEFAULT_CENTER.longitude.toFixed(2)}</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'spot' : 'spots'} nearby
+              </p>
             </div>
           </div>
         </div>

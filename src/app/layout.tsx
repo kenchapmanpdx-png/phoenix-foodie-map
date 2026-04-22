@@ -4,6 +4,7 @@ import './globals.css'
 import BottomNav from '@/components/layout/BottomNav'
 import SmoothScroll from '@/components/shared/SmoothScroll'
 import CustomCursor from '@/components/shared/CustomCursor'
+import ClientLayoutShell from '@/components/shared/ClientLayoutShell'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -45,7 +46,7 @@ export default function RootLayout({
       <body className="bg-surface-primary text-text-primary font-body dark">
         <SmoothScroll>
           <CustomCursor />
-          {children}
+          <ClientLayoutShell>{children}</ClientLayoutShell>
           <BottomNav />
         </SmoothScroll>
       </body>

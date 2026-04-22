@@ -87,7 +87,13 @@ export default function AuthScreen() {
       <div className="w-full max-w-md">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[var(--color-text-primary)] mb-2">Phoenix Foodie Map</h1>
+          <span className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 mb-3">
+            <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+            {mode === 'signup' ? 'Join phx·foodie' : 'Welcome back'}
+          </span>
+          <h1 className="font-display text-4xl font-bold text-[var(--color-text-primary)] mb-2 leading-tight">
+            Phoenix Foodie Map
+          </h1>
           <p className="text-sm text-[var(--color-text-secondary)]">Discover local food culture</p>
         </div>
 
@@ -149,7 +155,7 @@ export default function AuthScreen() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[var(--color-accent-primary)] text-white rounded-lg font-semibold hover:bg-[var(--color-accent-primary)]/90 transition-colors disabled:opacity-50"
+                className="w-full h-12 rounded-full bg-gradient-to-r from-[var(--color-accent-primary)] to-red-500 text-white text-sm font-semibold tracking-wide shadow-lg shadow-orange-500/20 active:scale-[0.98] transition disabled:opacity-50"
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
@@ -201,7 +207,7 @@ export default function AuthScreen() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[var(--color-accent-primary)] text-white rounded-lg font-semibold hover:bg-[var(--color-accent-primary)]/90 transition-colors disabled:opacity-50"
+                className="w-full h-12 rounded-full bg-gradient-to-r from-[var(--color-accent-primary)] to-red-500 text-white text-sm font-semibold tracking-wide shadow-lg shadow-orange-500/20 active:scale-[0.98] transition disabled:opacity-50"
               >
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </button>

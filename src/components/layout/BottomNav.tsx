@@ -63,6 +63,8 @@ export default function BottomNav() {
   ]
   if (
     pathname.startsWith('/dashboard') ||
+    pathname === '/onboarding' ||
+    pathname.startsWith('/onboarding/') ||
     CREATOR_ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   ) {
     return null
