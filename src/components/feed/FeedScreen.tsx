@@ -64,108 +64,122 @@ export default function FeedScreen({ initialCuisine, initialVibe }: FeedScreenPr
   }, [allContent, activeFilters])
 
   return (
-    <div className="h-screen bg-[var(--color-surface-primary)] flex flex-col">
-      {/* Brand title bar */}
-      <header className="flex-shrink-0 glass-heavy border-b border-white/5">
-        <div className="flex items-center justify-between px-4 h-12">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
-              The Feed
-            </span>
+    <div className="relative h-screen bg-[var(--color-surface-primary)] overflow-hidden">
+      {/* Ambient glow — desktop only, frames the phone-width column */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 hidden md:block opacity-60"
+        style={{
+          backgroundImage: `
+            radial-gradient(620px circle at 20% 10%, rgba(245,158,11,0.18), transparent 60%),
+            radial-gradient(520px circle at 80% 90%, rgba(220,38,38,0.16), transparent 60%)
+          `,
+        }}
+      />
+
+      <div className="relative mx-auto max-w-md h-full flex flex-col md:border-x md:border-white/5 md:shadow-2xl">
+        {/* Brand title bar */}
+        <header className="flex-shrink-0 glass-heavy border-b border-white/5">
+          <div className="flex items-center justify-between px-4 h-12">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold tracking-[0.28em] uppercase text-white/55 flex items-center gap-2">
+                <span className="w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
+                The Feed
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Link
+                href="/search"
+                aria-label="Search"
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+              >
+                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </Link>
+              <Link
+                href="/map"
+                aria-label="View on map"
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+              >
+                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </Link>
+            </div>
           </div>
+        </header>
+
+        {/* Filter bar */}
+        <FilterBar />
+
+        {/* View mode toggle bar */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)]">
+          <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
+            {filteredContent.length} {filteredContent.length === 1 ? 'result' : 'results'}
+          </span>
           <div className="flex items-center gap-1">
-            <Link
-              href="/search"
-              aria-label="Search"
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
+              aria-label="Grid view"
             >
-              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="8" height="8" rx="1.5" />
+                <rect x="13" y="3" width="8" height="8" rx="1.5" />
+                <rect x="3" y="13" width="8" height="8" rx="1.5" />
+                <rect x="13" y="13" width="8" height="8" rx="1.5" />
               </svg>
-            </Link>
-            <Link
-              href="/map"
-              aria-label="View on map"
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all text-[var(--color-text-primary)]"
+            </button>
+            <button
+              onClick={() => setViewMode('single')}
+              className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'single' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
+              aria-label="Single view"
             >
-              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                <circle cx="12" cy="10" r="3" />
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
               </svg>
-            </Link>
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Filter bar */}
-      <FilterBar />
-
-      {/* View mode toggle bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)]">
-        <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
-          {filteredContent.length} {filteredContent.length === 1 ? 'result' : 'results'}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
-            aria-label="Grid view"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="3" y="3" width="8" height="8" rx="1.5" />
-              <rect x="13" y="3" width="8" height="8" rx="1.5" />
-              <rect x="3" y="13" width="8" height="8" rx="1.5" />
-              <rect x="13" y="13" width="8" height="8" rx="1.5" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setViewMode('single')}
-            className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'single' ? 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10' : 'text-[var(--color-text-tertiary)]'}`}
-            aria-label="Single view"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-            </svg>
-          </button>
+        {/* Feed content */}
+        <div className="flex-1 overflow-y-scroll hide-scrollbar">
+          {loading ? (
+            <div className="p-2">
+              <ShimmerStyle />
+              <div className="grid grid-cols-2 gap-2">
+                <FeedCardSkeleton />
+                <FeedCardSkeleton />
+                <FeedCardSkeleton />
+                <FeedCardSkeleton />
+              </div>
+            </div>
+          ) : filteredContent.length > 0 ? (
+            <div className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-2 gap-2 p-2 pb-24'
+                : 'flex flex-col gap-3 p-3 pb-24'
+            }>
+              {filteredContent.map((content) => (
+                <FeedCardWrapper
+                  key={content.id}
+                  content={content}
+                  compact={viewMode === 'grid'}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-[var(--color-text-secondary)] text-lg mb-2">No content found</p>
+                <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Feed content */}
-      <div className="flex-1 overflow-y-scroll hide-scrollbar">
-        {loading ? (
-          <div className="p-2">
-            <ShimmerStyle />
-            <div className="grid grid-cols-2 gap-2">
-              <FeedCardSkeleton />
-              <FeedCardSkeleton />
-              <FeedCardSkeleton />
-              <FeedCardSkeleton />
-            </div>
-          </div>
-        ) : filteredContent.length > 0 ? (
-          <div className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-2 gap-2 p-2 pb-24'
-              : 'flex flex-col gap-3 p-3 pb-24'
-          }>
-            {filteredContent.map((content) => (
-              <FeedCardWrapper
-                key={content.id}
-                content={content}
-                compact={viewMode === 'grid'}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <p className="text-[var(--color-text-secondary)] text-lg mb-2">No content found</p>
-              <p className="text-[var(--color-text-secondary)] text-sm">Try adjusting your filters</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
