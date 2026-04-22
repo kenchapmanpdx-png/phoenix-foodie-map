@@ -50,8 +50,21 @@ interface NavItem {
 export default function BottomNav() {
   const pathname = usePathname()
 
-  // Hide bottom nav on dashboard and creator routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/creator')) {
+  // Hide bottom nav on dashboard and creator admin routes.
+  // Public creator profile pages (/creator/<slug-or-id>) keep the nav.
+  const CREATOR_ADMIN_PATHS = [
+    '/creator/analytics',
+    '/creator/content',
+    '/creator/dashboard',
+    '/creator/gigs',
+    '/creator/portfolio',
+    '/creator/settings',
+    '/creator/upload',
+  ]
+  if (
+    pathname.startsWith('/dashboard') ||
+    CREATOR_ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
     return null
   }
 

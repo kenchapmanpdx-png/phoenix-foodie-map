@@ -77,6 +77,23 @@ export async function fetchCreatorById(id: string): Promise<Creator | null> {
   return data ? parseCreator(data) : null
 }
 
+// Public creator profile — resolve by slug, then fall back to id.
+// Allows /creator/arizona-foodie and /creator/<uuid> to both work.
+export async function fetchCreatorBySlugOrId(slugOrId: string): Promise<Creator | null> {
+  // Try slug first
+  const { data: bySlug } = await supabase
+    .from('creators')
+    .select('*')
+    .eq('slug', slugOrId)
+    .maybeSingle()
+  if (bySlug) return parseCreator(bySlug)
+
+  // UUID pattern — try id lookup
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId)
+  if (!isUuid) return null
+  return fetchCreatorById(slugOrId)
+}
+
 export async function fetchContent(): Promise<Content[]> {
   const { data, error } = await supabase
     .from('content')

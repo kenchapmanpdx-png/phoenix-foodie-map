@@ -19,6 +19,32 @@ import type { ContentWithRelations, CuisineType } from '@/types'
 const LAST_APP_OPEN_KEY = 'phx-foodie:last-app-open'
 const LAST_APP_OPEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 
+// Curated Unsplash fallbacks used when a cuisine has no creator content yet.
+// Quality-selected, consistent dark food-photography aesthetic. 1200w is enough
+// for a 2-col mobile grid; next/image downscales per device.
+const CUISINE_FALLBACK_IMAGES: Record<string, string> = {
+  Mexican:
+    'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&w=1200&q=80',
+  American:
+    'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1200&q=80',
+  Italian:
+    'https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?auto=format&fit=crop&w=1200&q=80',
+  Asian:
+    'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=1200&q=80',
+  Seafood:
+    'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=1200&q=80',
+  Pizza:
+    'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=1200&q=80',
+  'BBQ/Comfort':
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80',
+  Brunch:
+    'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=1200&q=80',
+  Healthy:
+    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80',
+  'Dessert/Coffee':
+    'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=1200&q=80',
+}
+
 // Masonry layout pattern for cuisine tiles — col-span + aspect-ratio per index.
 // Paired within rows so adjacent tiles share row height, rows themselves vary.
 const CUISINE_LAYOUT = [
@@ -252,7 +278,9 @@ export default function HomeScreen() {
   )
 
   // Cuisine-specific photography. For each cuisine, find the first content
-  // item whose restaurant includes that cuisine and has media.
+  // item whose restaurant includes that cuisine and has media. When a cuisine
+  // has no creator content yet, fall back to a curated Unsplash photo so the
+  // Cravings grid stays fully photographed.
   const cuisineImageMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const cuisine of CUISINE_TYPES) {
@@ -263,6 +291,8 @@ export default function HomeScreen() {
       )
       if (match) {
         map[cuisine.value] = (match.thumbnail_url || match.media_url) as string
+      } else if (CUISINE_FALLBACK_IMAGES[cuisine.value]) {
+        map[cuisine.value] = CUISINE_FALLBACK_IMAGES[cuisine.value]
       }
     }
     return map
@@ -313,7 +343,7 @@ export default function HomeScreen() {
               {featuredCreators.map((creator) => (
                 <Link
                   key={creator.id}
-                  href={`/creator/${creator.id}`}
+                  href={`/creator/${creator.slug || creator.id}`}
                   className="flex-shrink-0 flex flex-col items-center w-20 group"
                   data-cursor="view"
                 >

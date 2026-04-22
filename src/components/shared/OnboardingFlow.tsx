@@ -37,24 +37,44 @@ export default function OnboardingFlow() {
     }
   }
 
+  // Flag checked by '/' to decide whether to short-circuit to onboarding.
+  const markOnboarded = () => {
+    try { localStorage.setItem('pfm_onboarded', '1') } catch {}
+  }
+
   const handleSkip = () => {
-    handleNext()
+    if (step < 3) { handleNext(); return }
+    // Skip on final step = exit onboarding entirely (flag + go to feed).
+    markOnboarded()
+    router.push('/feed')
   }
 
   const handleComplete = async () => {
-    if (!user) return
-
     setIsLoading(true)
     try {
-      const updatedUser = {
-        ...user,
-        preferred_cuisines: selectedCuisines,
-        preferred_vibes: selectedVibes,
-        default_area: selectedNeighborhood || user.default_area,
-        onboarding_completed: true,
+      if (user) {
+        const updatedUser = {
+          ...user,
+          preferred_cuisines: selectedCuisines,
+          preferred_vibes: selectedVibes,
+          default_area: selectedNeighborhood || user.default_area,
+          onboarding_completed: true,
+        }
+        setUser(updatedUser)
+      } else {
+        // Anonymous user: stash prefs in localStorage so Home can personalize.
+        try {
+          localStorage.setItem(
+            'pfm_guest_prefs',
+            JSON.stringify({
+              preferred_cuisines: selectedCuisines,
+              preferred_vibes: selectedVibes,
+              default_area: selectedNeighborhood,
+            })
+          )
+        } catch {}
       }
-
-      setUser(updatedUser)
+      markOnboarded()
       router.push('/feed')
     } finally {
       setIsLoading(false)
