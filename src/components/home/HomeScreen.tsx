@@ -257,6 +257,22 @@ export default function HomeScreen() {
     American: '🍔',
   }
 
+  // Vibe tag → {emoji, gradient} — gives each pill its own personality.
+  const vibeMeta: Record<string, { emoji: string; gradient: string }> = {
+    'Date Night':     { emoji: '🕯️', gradient: 'from-rose-500/30 to-red-700/20 border-rose-400/30' },
+    'Trendy / New':   { emoji: '✨', gradient: 'from-fuchsia-500/30 to-purple-700/20 border-fuchsia-400/30' },
+    'Hidden Gem':     { emoji: '💎', gradient: 'from-cyan-500/30 to-teal-700/20 border-cyan-400/30' },
+    'Happy Hour':     { emoji: '🍸', gradient: 'from-amber-500/30 to-orange-700/20 border-amber-400/30' },
+    'Family':         { emoji: '👨‍👩‍👧', gradient: 'from-emerald-500/30 to-green-700/20 border-emerald-400/30' },
+    'Group Dinner':   { emoji: '🍻', gradient: 'from-orange-500/30 to-red-700/20 border-orange-400/30' },
+    'Patio':          { emoji: '🌵', gradient: 'from-lime-500/30 to-emerald-700/20 border-lime-400/30' },
+    'Brunch':         { emoji: '🥞', gradient: 'from-yellow-500/30 to-amber-700/20 border-yellow-400/30' },
+    'Late Night':     { emoji: '🌙', gradient: 'from-indigo-500/30 to-slate-700/20 border-indigo-400/30' },
+    'Quick Bite':     { emoji: '⚡', gradient: 'from-yellow-500/30 to-orange-700/20 border-yellow-400/30' },
+    'Solo-Friendly':  { emoji: '🎧', gradient: 'from-sky-500/30 to-blue-700/20 border-sky-400/30' },
+    'Splurge-Worthy': { emoji: '🥂', gradient: 'from-amber-400/30 to-yellow-700/20 border-amber-300/40' },
+  }
+
   // Reels rail — videos first, then photos, up to 10 items with media.
   const reelsContent = useMemo(() => {
     const withMedia = allContent.filter((c) => c.thumbnail_url || c.media_url)
@@ -299,6 +315,24 @@ export default function HomeScreen() {
     const pool = founders.length >= 4 ? founders : creators
     return pool.slice(0, 4)
   }, [creators])
+
+  // Scout signature labels — pick a *unique* specialty per scout across the row
+  // so the tiles don't all read "American · American · American · American".
+  // Falls back to the first area covered, then to an '@handle' if nothing else.
+  const scoutLabels = useMemo(() => {
+    const used = new Set<string>()
+    return featuredCreators.map((creator) => {
+      const specs = creator.specialties || []
+      const unusedSpec = specs.find((s) => !used.has(s))
+      const pick =
+        unusedSpec ||
+        specs[0] ||
+        creator.areas_covered?.[0] ||
+        (creator.instagram_handle ? `@${creator.instagram_handle}` : null)
+      if (pick) used.add(pick)
+      return pick
+    })
+  }, [featuredCreators])
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
@@ -374,7 +408,7 @@ export default function HomeScreen() {
             </div>
 
             <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
-              {featuredCreators.map((creator) => (
+              {featuredCreators.map((creator, idx) => (
                 <Link
                   key={creator.id}
                   href={`/creator/${creator.slug || creator.id}`}
@@ -405,9 +439,9 @@ export default function HomeScreen() {
                   <p className="text-xs font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full">
                     {creator.display_name}
                   </p>
-                  {creator.specialties?.[0] && (
+                  {scoutLabels[idx] && (
                     <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-1 w-full mt-0.5">
-                      {creator.specialties[0]}
+                      {scoutLabels[idx]}
                     </p>
                   )}
                 </Link>
@@ -508,24 +542,36 @@ export default function HomeScreen() {
 
           <div className="snap-x-mandatory overflow-x-auto hide-scrollbar px-4">
             <div className="flex gap-2 w-fit">
-              {VIBE_TAGS.map((vibe) => (
-                <Link
-                  key={vibe.value}
-                  href={`/feed?vibe=${vibe.value}`}
-                  className="
-                    snap-center flex-shrink-0
-                    px-4 py-2 rounded-full
-                    text-sm font-medium
-                    transition-all duration-300
-                    block btn-press pill-glow
-                    glass text-[var(--color-text-primary)]
-                    hover:bg-[var(--color-surface-elevated)]
-                  "
-                  data-cursor="expand"
-                >
-                  {vibe.label}
-                </Link>
-              ))}
+              {VIBE_TAGS.map((vibe) => {
+                const meta = vibeMeta[vibe.value] || {
+                  emoji: '🍽️',
+                  gradient: 'from-white/10 to-white/5 border-white/10',
+                }
+                return (
+                  <Link
+                    key={vibe.value}
+                    href={`/feed?vibe=${vibe.value}`}
+                    className={`
+                      snap-center flex-shrink-0
+                      inline-flex items-center gap-1.5
+                      pl-3 pr-4 py-2 rounded-full
+                      text-sm font-semibold
+                      text-[var(--color-text-primary)]
+                      transition-all duration-300
+                      btn-press pill-glow
+                      bg-gradient-to-br ${meta.gradient}
+                      border backdrop-blur-md
+                      hover:brightness-125 hover:scale-[1.03]
+                    `}
+                    data-cursor="expand"
+                  >
+                    <span className="text-base leading-none" aria-hidden>
+                      {meta.emoji}
+                    </span>
+                    <span>{vibe.label}</span>
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </section>

@@ -130,3 +130,41 @@ export function getTimeOfDayBucket(): 'morning' | 'lunch' | 'afternoon' | 'eveni
   if (hour >= 17 && hour < 21) return 'evening'
   return 'late_night'
 }
+
+/**
+ * Compact relative-time label for content cards.
+ *
+ *   just now  -> <60s
+ *   Nm        -> <60m
+ *   Nh        -> <24h
+ *   Nd        -> <7d
+ *   Nw        -> <4w
+ *   Nmo       -> <12mo
+ *   Ny        -> >=1y
+ *
+ * Returns null for falsy / unparseable inputs so callers can conditionally
+ * render the chip.
+ */
+export function timeAgo(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return null
+
+  const diffMs = Date.now() - then
+  if (diffMs < 0) return 'just now' // future timestamp — treat as fresh
+
+  const sec = Math.floor(diffMs / 1000)
+  if (sec < 60) return 'just now'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day}d ago`
+  const wk = Math.floor(day / 7)
+  if (wk < 4) return `${wk}w ago`
+  const mo = Math.floor(day / 30)
+  if (mo < 12) return `${mo}mo ago`
+  const yr = Math.floor(day / 365)
+  return `${yr}y ago`
+}

@@ -41,6 +41,60 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
     [allContent, restaurant.id]
   )
 
+  // ─── Related restaurants ────────────────────────────────────────────────
+  // "You might also like" — dedup other restaurants from the content feed,
+  // score by shared cuisine + shared neighborhood + content count, take top 6.
+  // Uses the content feed rather than a dedicated /restaurants hook so we can
+  // grab the "best content thumbnail" per restaurant without a second query.
+  const relatedRestaurants = useMemo(() => {
+    const cuisineSet = new Set((restaurant.cuisine_types || []).map((c) => c.toLowerCase()))
+
+    // Group content by restaurant id (excluding current)
+    type Group = {
+      restaurant: ContentWithRelations['restaurant']
+      contentCount: number
+      bestThumb: string | null
+      bestScore: number
+    }
+    const groups = new Map<string, Group>()
+
+    for (const c of allContent) {
+      if (c.restaurant_id === restaurant.id) continue
+      if (!c.restaurant) continue
+      const engagement = (c.view_count || 0) + (c.save_count || 0) * 5
+      const existing = groups.get(c.restaurant_id)
+      const thumb = c.thumbnail_url || c.media_url || null
+      if (!existing) {
+        groups.set(c.restaurant_id, {
+          restaurant: c.restaurant,
+          contentCount: 1,
+          bestThumb: thumb,
+          bestScore: engagement,
+        })
+      } else {
+        existing.contentCount += 1
+        if (engagement > existing.bestScore && thumb) {
+          existing.bestThumb = thumb
+          existing.bestScore = engagement
+        }
+      }
+    }
+
+    return Array.from(groups.values())
+      .map((g) => {
+        const sharedCuisines = (g.restaurant.cuisine_types || []).filter((c) =>
+          cuisineSet.has(c.toLowerCase())
+        ).length
+        const sharedNeighborhood = g.restaurant.neighborhood === restaurant.neighborhood ? 1 : 0
+        // Rank: cuisine overlap dominates, then neighborhood, then volume
+        const score = sharedCuisines * 10 + sharedNeighborhood * 4 + Math.min(g.contentCount, 5)
+        return { ...g, score }
+      })
+      .filter((g) => g.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+  }, [allContent, restaurant.id, restaurant.cuisine_types, restaurant.neighborhood])
+
   // Compute per-dish data: linked creators, content items, best thumbnail
   const dishData: DishWithCreators[] = useMemo(() => {
     if (!dishes.length || !restaurantContent.length) return dishes.map((d) => ({ dish: d, creators: [], contentItems: [], bestThumbnail: d.thumbnail_url || null }))
@@ -445,6 +499,79 @@ export default function RestaurantDetailScreen({ restaurant }: Props) {
                   </div>
                 </Link>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── SECTION 2b: Related restaurants ─── */}
+        {relatedRestaurants.length > 0 && (
+          <div>
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-lg font-semibold text-text-primary">
+                You might also like
+              </h2>
+              <span className="text-[11px] text-text-secondary/70 uppercase tracking-wider">
+                {restaurant.cuisine_types?.[0] || 'Nearby'}
+              </span>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory hide-scrollbar">
+              {relatedRestaurants.map((r) => {
+                const sharedCuisine = (r.restaurant.cuisine_types || []).find((c) =>
+                  restaurant.cuisine_types?.some(
+                    (mine) => mine.toLowerCase() === c.toLowerCase()
+                  )
+                )
+                const sharedNbhd = r.restaurant.neighborhood === restaurant.neighborhood
+                const chipLabel = sharedCuisine
+                  ? `Also ${sharedCuisine}`
+                  : sharedNbhd
+                    ? `In ${r.restaurant.neighborhood}`
+                    : r.restaurant.cuisine_types?.[0] || 'Explore'
+                return (
+                  <Link
+                    key={r.restaurant.id}
+                    href={`/restaurant/${r.restaurant.slug}`}
+                    className="flex-shrink-0 w-40 snap-start group"
+                  >
+                    <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-card border border-white/5 group-hover:border-white/15 transition-colors">
+                      {r.bestThumb ? (
+                        <img
+                          src={r.bestThumb}
+                          alt={r.restaurant.name}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/70 to-orange-800/60" />
+                      )}
+
+                      {/* Scrim */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+                      {/* Top chip */}
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white/95 bg-black/55 backdrop-blur border border-white/10">
+                        {chipLabel}
+                      </span>
+
+                      {/* Bottom identity */}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                        <h3 className="text-sm font-bold text-white leading-tight line-clamp-2">
+                          {r.restaurant.name}
+                        </h3>
+                        <p className="text-[10px] text-white/70 mt-0.5 line-clamp-1">
+                          {r.restaurant.neighborhood}
+                          {r.contentCount > 0 && (
+                            <>
+                              <span className="mx-1 text-white/30">·</span>
+                              {r.contentCount} post{r.contentCount !== 1 ? 's' : ''}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
         )}

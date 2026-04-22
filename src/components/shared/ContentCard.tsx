@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { ContentWithRelations } from '@/types'
 import { useUserStore } from '@/store/user'
 import { useGeolocation, getDistanceMiles } from '@/hooks/useGeolocation'
+import { timeAgo } from '@/lib/utils'
 
 export type ContentCardVariant = 'grid' | 'full' | 'hero'
 
@@ -44,6 +45,11 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
   const viewCount = content.view_count ?? 0
   const saveLabel = formatCount(saveCount)
   const viewLabel = formatCount(viewCount)
+
+  // "2d ago" chip — prefer publish_date (creator's original publish), fall
+  // back to created_at (when the row was inserted). Null when neither parses.
+  const timeLabel =
+    timeAgo(content.publish_date) || timeAgo(content.created_at)
 
   const contentHref = `/content/${content.id}`
 
@@ -210,9 +216,14 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
                   <img src={content.creator.avatar_url} alt="" className="w-full h-full object-cover" />
                 )}
               </div>
-              <span className="text-[10px] text-white/70 font-medium truncate">
+              <span className="text-[10px] text-white/70 font-medium truncate flex-1 min-w-0">
                 {content.creator.display_name}
               </span>
+              {timeLabel && (
+                <span className="text-[9px] text-white/50 font-medium flex-shrink-0">
+                  {timeLabel}
+                </span>
+              )}
             </div>
             <h3 className="text-xs font-bold text-white line-clamp-2 leading-tight">
               {content.restaurant.name}
@@ -273,22 +284,35 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
 
           <div className="absolute inset-0 card-scrim-bottom pointer-events-none" />
 
-          {/* Save */}
-          <button
-            onClick={handleSaveClick}
-            className="absolute top-3 right-3 z-10 p-2 glass-light rounded-full btn-press shadow-lg"
-            aria-label="Save"
-          >
-            <svg
-              className={`w-4.5 h-4.5 transition-all duration-300 ${isSaved ? 'fill-[var(--color-accent-primary)] text-[var(--color-accent-primary)]' : 'text-white'}`}
-              viewBox="0 0 24 24"
-              fill={isSaved ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              strokeWidth={2}
+          {/* Action cluster — save + share, top-right */}
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+            <button
+              onClick={handleSaveClick}
+              className="p-2 glass-light rounded-full btn-press shadow-lg"
+              aria-label="Save"
             >
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-          </button>
+              <svg
+                className={`w-4.5 h-4.5 transition-all duration-300 ${isSaved ? 'fill-[var(--color-accent-primary)] text-[var(--color-accent-primary)]' : 'text-white'}`}
+                viewBox="0 0 24 24"
+                fill={isSaved ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleShareClick}
+              className="p-2 glass-light rounded-full btn-press shadow-lg"
+              aria-label="Share"
+            >
+              <svg className="w-4.5 h-4.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            </button>
+          </div>
 
           {/* Video play affordance */}
           {isVideo && (
@@ -315,9 +339,16 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
                   />
                 )}
               </div>
-              <span className="text-xs font-medium text-[var(--color-text-primary)] truncate flex-1">
-                {content.creator.display_name}
-              </span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-medium text-[var(--color-text-primary)] truncate">
+                  {content.creator.display_name}
+                </span>
+                {timeLabel && (
+                  <span className="text-[9px] text-white/50 font-medium leading-tight">
+                    {timeLabel}
+                  </span>
+                )}
+              </div>
               {(saveLabel || viewLabel) && (
                 <div className="flex items-center gap-2 text-[10px] text-white/70 font-medium flex-shrink-0">
                   {isVideo && viewLabel && (
@@ -415,11 +446,17 @@ export default function ContentCard({ content, variant = 'grid' }: ContentCardPr
             )}
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white truncate max-w-[130px] drop-shadow-md">
+            <span className="text-sm font-semibold text-white truncate max-w-[160px] drop-shadow-md">
               {content.creator.display_name}
             </span>
             <span className="text-[10px] text-white/60 font-medium">
               @{content.creator.instagram_handle}
+              {timeLabel && (
+                <>
+                  <span className="mx-1 text-white/30">·</span>
+                  <span className="text-white/60">{timeLabel}</span>
+                </>
+              )}
             </span>
           </div>
         </div>
