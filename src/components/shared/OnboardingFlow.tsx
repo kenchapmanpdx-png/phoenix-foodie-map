@@ -62,7 +62,7 @@ export default function OnboardingFlow() {
   const handleSkip = () => {
     if (step < 3) { handleNext(); return }
     markOnboarded()
-    router.push('/feed')
+    router.push('/')
   }
 
   const handleComplete = async () => {
@@ -90,14 +90,14 @@ export default function OnboardingFlow() {
         } catch {}
       }
       markOnboarded()
-      router.push('/feed')
+      router.push('/')
     } finally {
       setIsLoading(false)
     }
   }
 
   const stepCopy = {
-    1: { title: 'What are you craving?', sub: 'Pick up to 3 cuisines — we tune your feed around them.', counter: selectedCuisines.length },
+    1: { title: 'What are you craving?', sub: 'Pick up to 3 cuisines — we tune your discovery feed around them.', counter: selectedCuisines.length },
     2: { title: "Set the vibe", sub: 'Pick up to 3. Date night? Hidden gem? Patio hangout?', counter: selectedVibes.length },
     3: { title: 'Your home base', sub: 'Where in the Valley do you start from?', counter: selectedNeighborhood ? 1 : 0 },
   }[step as 1 | 2 | 3]
