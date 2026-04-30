@@ -305,10 +305,10 @@ export default function HomeScreen() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-primary)]">
-      {/* BRAND HEADER — sticky, translucent, sits above reels */}
+      {/* BRAND HEADER — sticky, translucent, frames Discover as the primary route */}
       <header className="sticky top-0 z-30 glass-heavy border-b border-white/5">
         <div className="flex items-center justify-between px-4 h-12">
-          <Link href="/" className="flex items-center gap-2 group" aria-label="Phoenix Foodie Map — home">
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Phoenix Foodie Map — Discover">
             {/* Sun/bite mark glyph */}
             <span className="relative w-7 h-7 flex items-center justify-center">
               <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-accent-primary)] via-orange-500 to-red-600 opacity-90" />
@@ -344,93 +344,84 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      {/* REELS RAIL — flush to top, TikTok-style pixel-0 content */}
-      {reelsContent.length > 0 && (
-        <section className="pt-3">
-          <div className="overflow-x-auto hide-scrollbar">
-            <div className="flex gap-2 px-3 pb-2 w-fit">
-              {reelsContent.map((content, idx) => (
-                <ReelThumb
-                  key={content.id}
-                  content={content}
-                  fallbackGradient={cuisineGradients[idx % cuisineGradients.length]}
-                  index={idx}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* DISCOVERY HERO — first-session clarity before the content rails */}
+      <section className="px-4 pt-5 pb-4">
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-amber-500/20 via-orange-700/20 to-red-900/25 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)]">
+          <div
+            aria-hidden
+            className="absolute -top-24 -right-20 w-48 h-48 rounded-full bg-[var(--color-accent-primary)]/20 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-24 -left-20 w-52 h-52 rounded-full bg-red-600/15 blur-3xl"
+          />
 
-      {/* SCOUTS ROW — creators as identity anchors */}
-      {featuredCreators.length > 0 && (
-        <RevealSection delay={50}>
-          <section className="px-4 pt-5 pb-4">
-            <div className="mb-3 flex items-center justify-between">
-              <Overline>Your food scouts</Overline>
+          <div className="relative z-10">
+            <Overline>Discover</Overline>
+            <h1 className="heading-hero mt-3 text-[30px] font-black leading-[0.95] tracking-tight text-[var(--color-text-primary)]">
+              What are you hungry for tonight?
+            </h1>
+            <p className="mt-3 max-w-[310px] text-sm leading-snug text-[var(--color-text-secondary)]">
+              Find Phoenix restaurants by craving, vibe, dish, neighborhood, or creator recommendation.
+            </p>
+
+            <Link
+              href="/search"
+              className="mt-4 flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-3 text-left text-sm font-medium text-[var(--color-text-tertiary)] backdrop-blur-md transition-all hover:border-[var(--color-accent-primary)]/50 hover:bg-black/45 active:scale-[0.99]"
+            >
+              <svg className="h-[18px] w-[18px] flex-shrink-0 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+              <span>Search tacos, patios, date night, Gilbert...</span>
+            </Link>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <Link
-                href="/search"
-                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+                href="/map"
+                className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:border-[var(--color-accent-primary)]/40 hover:bg-white/10 active:scale-[0.98]"
               >
-                All →
+                <span className="mr-1.5" aria-hidden>⚡</span> Open now
+              </Link>
+              <Link
+                href="/map"
+                className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:border-[var(--color-accent-primary)]/40 hover:bg-white/10 active:scale-[0.98]"
+              >
+                <span className="mr-1.5" aria-hidden>📍</span> Near me
+              </Link>
+              <Link
+                href="/feed?vibe=Date%20Night"
+                className="rounded-2xl border border-rose-400/25 bg-rose-500/15 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:border-rose-300/45 hover:bg-rose-500/20 active:scale-[0.98]"
+              >
+                <span className="mr-1.5" aria-hidden>🕯️</span> Date night
+              </Link>
+              <Link
+                href="/feed?vibe=Hidden%20Gem"
+                className="rounded-2xl border border-cyan-400/25 bg-cyan-500/15 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:border-cyan-300/45 hover:bg-cyan-500/20 active:scale-[0.98]"
+              >
+                <span className="mr-1.5" aria-hidden>💎</span> Hidden gems
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
-              {featuredCreators.map((creator, idx) => (
-                <Link
-                  key={creator.id}
-                  href={`/creator/${creator.slug || creator.id}`}
-                  className="flex-shrink-0 flex flex-col items-center w-24 group"
-                  data-cursor="view"
-                >
-                  <div className="relative mb-2">
-                    {/* Gradient story-ring */}
-                    <div className="rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] via-orange-500 to-red-600 group-hover:scale-105 transition-transform duration-300">
-                      {creator.avatar_url ? (
-                        <img
-                          src={creator.avatar_url}
-                          alt={creator.display_name}
-                          className="w-16 h-16 rounded-full object-cover ring-2 ring-black"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-lg font-bold text-white">
-                          {creator.display_name?.charAt(0) || '?'}
-                        </div>
-                      )}
-                    </div>
-                    {creator.is_founding_creator && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--color-accent-primary)] ring-2 ring-[var(--color-surface-primary)] flex items-center justify-center">
-                        <span className="text-[9px] text-black font-bold">★</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-[11px] font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full leading-tight">
-                    {creator.display_name}
-                  </p>
-                  {scoutLabels[idx] && (
-                    <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-2 w-full mt-0.5 leading-tight">
-                      {scoutLabels[idx]}
-                    </p>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </section>
-        </RevealSection>
-      )}
-
-      {/* FEATURED NOW — hero carousel */}
+      {/* TONIGHT'S PICKS — recommendation payoff before passive scrolling */}
       {featuredContent.length > 0 && (
-        <RevealSection delay={75}>
-          <section className="pt-4 pb-5">
+        <RevealSection delay={50}>
+          <section className="pt-3 pb-5">
             <div className="px-4 mb-3 flex items-center justify-between">
-              <Overline>Featured now</Overline>
+              <div>
+                <Overline>Tonight&apos;s picks</Overline>
+                <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                  Creator-backed spots worth tapping first.
+                </p>
+              </div>
               <Link
                 href="/feed"
                 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
               >
-                See all →
+                Feed →
               </Link>
             </div>
 
@@ -440,6 +431,35 @@ export default function HomeScreen() {
                   <div key={content.id} className="snap-start flex-shrink-0">
                     <ContentCard content={content} variant="hero" />
                   </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </RevealSection>
+      )}
+
+      {/* REELS RAIL — moved below active discovery so scrolling still feels alive */}
+      {reelsContent.length > 0 && (
+        <RevealSection delay={75}>
+          <section className="pt-2 pb-5">
+            <div className="px-4 mb-3 flex items-center justify-between">
+              <Overline>Creator reels</Overline>
+              <Link
+                href="/feed"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+              >
+                Watch →
+              </Link>
+            </div>
+            <div className="overflow-x-auto hide-scrollbar">
+              <div className="flex gap-2 px-3 pb-2 w-fit">
+                {reelsContent.map((content, idx) => (
+                  <ReelThumb
+                    key={content.id}
+                    content={content}
+                    fallbackGradient={cuisineGradients[idx % cuisineGradients.length]}
+                    index={idx}
+                  />
                 ))}
               </div>
             </div>
@@ -551,7 +571,7 @@ export default function HomeScreen() {
         <RevealSection delay={150}>
           <section className="pt-4 pb-5">
             <div className="px-4 mb-3">
-              <Overline>Trending dishes</Overline>
+              <Overline>What creators keep ordering</Overline>
             </div>
 
             <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 pb-2">
@@ -580,6 +600,64 @@ export default function HomeScreen() {
                       </p>
                     </div>
                   </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </RevealSection>
+      )}
+
+      {/* SCOUTS ROW — moved lower so appetite comes before creator identity */}
+      {featuredCreators.length > 0 && (
+        <RevealSection delay={175}>
+          <section className="px-4 pt-5 pb-4">
+            <div className="mb-3 flex items-center justify-between">
+              <Overline>Your food scouts</Overline>
+              <Link
+                href="/search"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-secondary)] transition-colors"
+              >
+                All →
+              </Link>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
+              {featuredCreators.map((creator, idx) => (
+                <Link
+                  key={creator.id}
+                  href={`/creator/${creator.slug || creator.id}`}
+                  className="flex-shrink-0 flex flex-col items-center w-24 group"
+                  data-cursor="view"
+                >
+                  <div className="relative mb-2">
+                    {/* Gradient story-ring */}
+                    <div className="rounded-full p-[2px] bg-gradient-to-br from-[var(--color-accent-primary)] via-orange-500 to-red-600 group-hover:scale-105 transition-transform duration-300">
+                      {creator.avatar_url ? (
+                        <img
+                          src={creator.avatar_url}
+                          alt={creator.display_name}
+                          className="w-16 h-16 rounded-full object-cover ring-2 ring-black"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 ring-2 ring-black flex items-center justify-center text-lg font-bold text-white">
+                          {creator.display_name?.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </div>
+                    {creator.is_founding_creator && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--color-accent-primary)] ring-2 ring-[var(--color-surface-primary)] flex items-center justify-center">
+                        <span className="text-[9px] text-black font-bold">★</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[var(--color-text-primary)] text-center line-clamp-1 w-full leading-tight">
+                    {creator.display_name}
+                  </p>
+                  {scoutLabels[idx] && (
+                    <p className="text-[10px] text-[var(--color-text-tertiary)] text-center line-clamp-2 w-full mt-0.5 leading-tight">
+                      {scoutLabels[idx]}
+                    </p>
+                  )}
                 </Link>
               ))}
             </div>

@@ -3,9 +3,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const HomeIcon = () => (
+const DiscoverIcon = () => (
   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+    <path d="M12 2l2.4 6.9H22l-6 4.4 2.3 6.9L12 16l-6.3 4.2 2.3-6.9-6-4.4h7.6L12 2z" />
   </svg>
 )
 
@@ -13,12 +13,6 @@ const FeedIcon = () => (
   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="9" />
     <path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none" />
-  </svg>
-)
-
-const SearchIcon = () => (
-  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
   </svg>
 )
 
@@ -50,8 +44,6 @@ interface NavItem {
 export default function BottomNav() {
   const pathname = usePathname()
 
-  // Hide bottom nav on dashboard and creator admin routes.
-  // Public creator profile pages (/creator/<slug-or-id>) keep the nav.
   const CREATOR_ADMIN_PATHS = [
     '/creator/analytics',
     '/creator/content',
@@ -71,20 +63,14 @@ export default function BottomNav() {
   }
 
   const navItems: NavItem[] = [
-    { label: 'Home', href: '/', icon: <HomeIcon /> },
+    { label: 'Discover', href: '/', icon: <DiscoverIcon /> },
     { label: 'Feed', href: '/feed', icon: <FeedIcon /> },
-    { label: 'Search', href: '/search', icon: <SearchIcon /> },
     { label: 'Map', href: '/map', icon: <MapIcon /> },
     { label: 'Saved', href: '/saved', icon: <SavedIcon /> },
-    { label: 'Profile', href: '/profile', icon: <ProfileIcon /> },
+    { label: 'Me', href: '/profile', icon: <ProfileIcon /> },
   ]
 
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/'
-    }
-    return pathname.startsWith(href)
-  }
+  const isActive = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 glass-heavy safe-area-bottom z-50">
@@ -98,7 +84,6 @@ export default function BottomNav() {
               className="flex flex-col items-center justify-center flex-1 btn-press relative"
               data-testid={item.testId}
             >
-              {/* Active indicator dot */}
               {active && (
                 <div className="absolute top-1.5 w-1 h-1 rounded-full bg-[var(--color-accent-primary)]" />
               )}
